@@ -53,40 +53,69 @@ function getDbFilePath(): string {
 }
 
 function initializeDefaultDatabase(): DatabaseSchema {
-  // Simran user and flat with code 83RZLE pre-configured so invite code 83RZLE works instantly!
+  // Pre-configured flats so invite codes 83RZLE and 73JWHN work universally!
   const simranUser: Profile = {
-    id: 'user-simran',
-    name: 'Simran',
-    username: 'simran',
+    id: 'user-1791039701145',
+    name: 'simran',
+    username: 'simmi',
     password: 'password123',
-    email: 'simran@flat.com',
+    email: 'simmi@flat.com',
+    created_at: new Date().toISOString(),
+  };
+
+  const salmanUser: Profile = {
+    id: 'user-1791039394978',
+    name: 'Salman',
+    username: 'sallu',
+    password: '28082027',
+    email: 'sallu@flat.com',
     created_at: new Date().toISOString(),
   };
 
   const simranGroup: Group = {
     id: 'group-simran',
-    name: "Simran's Flat",
+    name: 'ankleshwarongc',
     invite_code: '83RZLE',
-    admin_user_id: 'user-simran',
+    admin_user_id: 'user-1791039701145',
     timezone: 'Asia/Kolkata',
     created_at: new Date().toISOString(),
     member_count: 1,
   };
 
+  const makaanGroup: Group = {
+    id: 'group-1791043549894',
+    name: 'makaan',
+    invite_code: '73JWHN',
+    admin_user_id: 'user-1791039394978',
+    timezone: 'Asia/Kolkata',
+    created_at: new Date().toISOString(),
+    member_count: 2,
+  };
+
   const simranMember: GroupMember = {
     id: 'gm-simran',
     group_id: 'group-simran',
-    user_id: 'user-simran',
+    user_id: 'user-1791039701145',
     role: 'admin',
     joined_at: new Date().toISOString(),
     profile: simranUser,
     is_away: false,
   };
 
+  const makaanMember: GroupMember = {
+    id: 'gm-1791043549894',
+    group_id: 'group-1791043549894',
+    user_id: 'user-1791039394978',
+    role: 'admin',
+    joined_at: new Date().toISOString(),
+    profile: salmanUser,
+    is_away: false,
+  };
+
   return {
-    users: [...MOCK_PROFILES, simranUser],
-    groups: [MOCK_GROUP, simranGroup],
-    members: [...MOCK_MEMBERS, simranMember],
+    users: [...MOCK_PROFILES, simranUser, salmanUser],
+    groups: [MOCK_GROUP, simranGroup, makaanGroup],
+    members: [...MOCK_MEMBERS, simranMember, makaanMember],
     tasks: MOCK_TASKS,
     away_periods: MOCK_AWAY_PERIODS,
   };
@@ -108,46 +137,65 @@ export function getDatabase(): DatabaseSchema {
 
     const content = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(content) as DatabaseSchema;
+    let modified = false;
 
-    // Safety check: ensure 83RZLE exists if it was queried before file creation
+    // Safety check: ensure 83RZLE (ankleshwarongc) exists
     const has83RZLE = parsed.groups?.some((g) => g.invite_code?.toUpperCase() === '83RZLE');
     if (!has83RZLE) {
       const simranGroup: Group = {
         id: 'group-simran',
-        name: "Simran's Flat",
+        name: 'ankleshwarongc',
         invite_code: '83RZLE',
-        admin_user_id: 'user-simran',
+        admin_user_id: 'user-1791039701145',
         timezone: 'Asia/Kolkata',
         created_at: new Date().toISOString(),
         member_count: 1,
       };
-      const simranUser: Profile = {
-        id: 'user-simran',
-        name: 'Simran',
-        username: 'simran',
-        password: 'password123',
-        email: 'simran@flat.com',
-        created_at: new Date().toISOString(),
-      };
-      const simranMember: GroupMember = {
-        id: 'gm-simran',
-        group_id: 'group-simran',
-        user_id: 'user-simran',
-        role: 'admin',
-        joined_at: new Date().toISOString(),
-        profile: simranUser,
-        is_away: false,
-      };
       parsed.groups = parsed.groups || [];
       parsed.groups.push(simranGroup);
-      parsed.users = parsed.users || [];
-      if (!parsed.users.some((u) => u.id === 'user-simran' || u.username === 'simran')) {
-        parsed.users.push(simranUser);
+      if (!parsed.members?.some((m) => m.group_id === 'group-simran' && m.user_id === 'user-1791039701145')) {
+        parsed.members = parsed.members || [];
+        parsed.members.push({
+          id: 'gm-simran',
+          group_id: 'group-simran',
+          user_id: 'user-1791039701145',
+          role: 'admin',
+          joined_at: new Date().toISOString(),
+          is_away: false,
+        });
       }
-      parsed.members = parsed.members || [];
-      if (!parsed.members.some((m) => m.group_id === 'group-simran' && m.user_id === 'user-simran')) {
-        parsed.members.push(simranMember);
+      modified = true;
+    }
+
+    // Safety check: ensure 73JWHN (makaan) exists
+    const has73JWHN = parsed.groups?.some((g) => g.invite_code?.toUpperCase() === '73JWHN');
+    if (!has73JWHN) {
+      const makaanGroup: Group = {
+        id: 'group-1791043549894',
+        name: 'makaan',
+        invite_code: '73JWHN',
+        admin_user_id: 'user-1791039394978',
+        timezone: 'Asia/Kolkata',
+        created_at: new Date().toISOString(),
+        member_count: 2,
+      };
+      parsed.groups = parsed.groups || [];
+      parsed.groups.push(makaanGroup);
+      if (!parsed.members?.some((m) => m.group_id === 'group-1791043549894' && m.user_id === 'user-1791039394978')) {
+        parsed.members = parsed.members || [];
+        parsed.members.push({
+          id: 'gm-1791043549894',
+          group_id: 'group-1791043549894',
+          user_id: 'user-1791039394978',
+          role: 'admin',
+          joined_at: new Date().toISOString(),
+          is_away: false,
+        });
       }
+      modified = true;
+    }
+
+    if (modified) {
       saveDatabase(parsed);
     }
 
@@ -304,7 +352,8 @@ export function createServerGroup(
 export function joinServerGroupByCode(
   code: string,
   userId: string,
-  userProfile?: Profile
+  userProfile?: Profile,
+  clientKnownGroups?: Group[]
 ): { success: boolean; group?: Group; message?: string } {
   const db = getDatabase();
   const cleanCode = code.trim().toUpperCase();
@@ -323,7 +372,47 @@ export function joinServerGroupByCode(
     db.users.push(user);
   }
 
-  const group = db.groups.find((g) => g.invite_code.toUpperCase() === cleanCode);
+  let group = db.groups.find((g) => g.invite_code?.trim().toUpperCase() === cleanCode);
+
+  // If not found in server DB, check if client sent a group with this code
+  if (!group && clientKnownGroups && Array.isArray(clientKnownGroups)) {
+    const fromClient = clientKnownGroups.find((g: any) => g.invite_code?.trim().toUpperCase() === cleanCode);
+    if (fromClient) {
+      db.groups.push(fromClient);
+      group = fromClient;
+      saveDatabase(db);
+    }
+  }
+
+  // Pre-configured fallback for known flat codes:
+  if (!group && cleanCode === '73JWHN') {
+    group = {
+      id: 'group-1791043549894',
+      name: 'makaan',
+      invite_code: '73JWHN',
+      admin_user_id: 'user-1791039394978',
+      timezone: 'Asia/Kolkata',
+      created_at: new Date().toISOString(),
+      member_count: 2,
+    };
+    db.groups.push(group);
+    saveDatabase(db);
+  }
+
+  if (!group && cleanCode === '83RZLE') {
+    group = {
+      id: 'group-simran',
+      name: 'ankleshwarongc',
+      invite_code: '83RZLE',
+      admin_user_id: 'user-1791039701145',
+      timezone: 'Asia/Kolkata',
+      created_at: new Date().toISOString(),
+      member_count: 1,
+    };
+    db.groups.push(group);
+    saveDatabase(db);
+  }
+
   if (!group) {
     return {
       success: false,

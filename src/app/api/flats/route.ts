@@ -66,8 +66,8 @@ export async function POST(request: Request) {
     }
 
     if (action === 'join') {
-      const { code, userId, userProfile } = body;
-      const result = joinServerGroupByCode(code, userId, userProfile);
+      const { code, userId, userProfile, clientKnownGroups } = body;
+      const result = joinServerGroupByCode(code, userId, userProfile, clientKnownGroups);
       if (!result.success) {
         return NextResponse.json(result, { status: 400 });
       }

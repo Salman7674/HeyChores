@@ -687,6 +687,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.message || 'Failed to create flat');
     }
 
+    if (typeof window !== 'undefined') {
+      try {
+        const savedGroups = JSON.parse(localStorage.getItem('heychores_all_groups') || '[]');
+        if (!savedGroups.some((g: any) => g.id === data.group.id)) {
+          savedGroups.push(data.group);
+          localStorage.setItem('heychores_all_groups', JSON.stringify(savedGroups));
+        }
+      } catch {}
+    }
+
     activeGroupIdRef.current = data.group.id;
     await fetchServerData(adminId, data.group.id);
     return data.group;
@@ -709,6 +719,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Please enter a valid invite code.' };
     }
 
+    const localGroupsRaw = typeof window !== 'undefined' ? localStorage.getItem('heychores_all_groups') : null;
+    const clientKnownGroups = localGroupsRaw ? JSON.parse(localGroupsRaw) : [];
+
     try {
       const res = await fetch('/api/flats', {
         method: 'POST',
@@ -718,6 +731,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           code: cleanCode,
           userId: currentUser.id,
           userProfile: currentUser,
+          clientKnownGroups,
         }),
       });
 
@@ -727,6 +741,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           success: false,
           message: data.message || `No flat found with code "${cleanCode}". Please verify with your flatmate.`,
         };
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const savedGroups = JSON.parse(localStorage.getItem('heychores_all_groups') || '[]');
+          if (!savedGroups.some((g: any) => g.id === data.group.id)) {
+            savedGroups.push(data.group);
+            localStorage.setItem('heychores_all_groups', JSON.stringify(savedGroups));
+          }
+        } catch {}
       }
 
       activeGroupIdRef.current = data.group.id;
