@@ -727,7 +727,10 @@ export function exchangeServerTask(
 
   // Check if replacement is away
   const replacementMember = db.members.find((m) => m.group_id === task.group_id && m.user_id === replacementUserId);
-  if (replacementMember?.is_away) {
+  const isAwayInPeriods = db.away_periods.some(
+    (a) => a.group_id === task.group_id && a.user_id === replacementUserId
+  );
+  if (replacementMember?.is_away || isAwayInPeriods) {
     return { success: false, message: 'Cannot exchange with a roommate who is currently marked as away on vacation.' };
   }
 

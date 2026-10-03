@@ -76,6 +76,22 @@
       "password": "1234",
       "email": "sinchan@flat.com",
       "created_at": "2026-10-03T14:53:13.862Z"
+    },
+    {
+      "id": "user-1791041858672",
+      "name": "Aman Sharma",
+      "username": "aman_8665",
+      "password": "password123",
+      "email": "aman_8665@gmail.com",
+      "created_at": "2026-10-03T15:37:38.672Z"
+    },
+    {
+      "id": "user-1791041930498",
+      "name": "Aman Sharma",
+      "username": "aman_0487",
+      "password": "password123",
+      "email": "aman_0487@gmail.com",
+      "created_at": "2026-10-03T15:38:50.498Z"
     }
   ],
   "groups": [
@@ -92,10 +108,19 @@
       "id": "group-simran",
       "name": "ankleshwarongc",
       "invite_code": "83RZLE",
-      "admin_user_id": "user-simran",
+      "admin_user_id": "user-1791039701145",
       "timezone": "Asia/Kolkata",
       "created_at": "2026-10-03T15:11:26.767Z",
       "member_count": 3
+    },
+    {
+      "id": "group-1791041693879",
+      "name": "makaan",
+      "invite_code": "43ZY3W",
+      "admin_user_id": "user-1791039394978",
+      "timezone": "Asia/Kolkata",
+      "created_at": "2026-10-03T15:34:53.879Z",
+      "member_count": 2
     }
   ],
   "members": [
@@ -214,14 +239,15 @@
         "email": "simmi@flat.com",
         "created_at": "2026-10-03T15:01:41.145Z"
       },
-      "is_away": false
+      "is_away": false,
+      "away_period": null
     },
     {
-      "id": "gm-1791040385270",
-      "group_id": "group-simran",
+      "id": "gm-1791041693879",
+      "group_id": "group-1791041693879",
       "user_id": "user-1791039394978",
-      "role": "member",
-      "joined_at": "2026-10-03T15:13:05.270Z",
+      "role": "admin",
+      "joined_at": "2026-10-03T15:34:53.879Z",
       "profile": {
         "id": "user-1791039394978",
         "name": "Salman",
@@ -233,36 +259,68 @@
       "is_away": false
     },
     {
-      "id": "gm-1791039730844",
-      "group_id": "group-1791039730844",
-      "user_id": "user-1791039701145",
-      "role": "admin",
-      "joined_at": "2026-10-03T15:02:10.844Z",
+      "id": "gm-1791041738656",
+      "group_id": "group-1791041693879",
+      "user_id": "user-1791039193862",
+      "role": "member",
+      "joined_at": "2026-10-03T15:35:38.656Z",
       "profile": {
-        "id": "user-1791039701145",
-        "name": "simran",
-        "username": "simmi",
-        "password": "12345",
-        "email": "simmi@flat.com",
-        "created_at": "2026-10-03T15:01:41.145Z"
+        "id": "user-1791039193862",
+        "name": "sinchan",
+        "username": "sinchan",
+        "password": "1234",
+        "email": "sinchan@flat.com",
+        "created_at": "2026-10-03T14:53:13.862Z"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791041858693",
+      "group_id": "group-simran",
+      "user_id": "user-1791041858672",
+      "role": "member",
+      "joined_at": "2026-10-03T15:37:38.693Z",
+      "profile": {
+        "id": "user-1791041858672",
+        "name": "Aman Sharma",
+        "username": "aman_8665",
+        "password": "password123",
+        "email": "aman_8665@gmail.com",
+        "created_at": "2026-10-03T15:37:38.672Z"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791041930520",
+      "group_id": "group-simran",
+      "user_id": "user-1791041930498",
+      "role": "member",
+      "joined_at": "2026-10-03T15:38:50.520Z",
+      "profile": {
+        "id": "user-1791041930498",
+        "name": "Aman Sharma",
+        "username": "aman_0487",
+        "password": "password123",
+        "email": "aman_0487@gmail.com",
+        "created_at": "2026-10-03T15:38:50.498Z"
       },
       "is_away": false
     }
   ],
   "tasks": [
     {
-      "id": "task-1791040393213",
+      "id": "task-1791041930546",
       "group_id": "group-simran",
-      "name": "Clean Kitchen",
-      "description": "Wipe gas stove and counter",
+      "name": "Take Out Trash & Recycling",
+      "description": "Bin at the front gate every Tuesday",
       "interval_type": "days",
-      "interval_value": 2,
+      "interval_value": 3,
       "is_active": true,
-      "created_at": "2026-10-03T15:13:13.213Z",
+      "created_at": "2026-10-03T15:38:50.546Z",
       "rotation": [
         {
-          "id": "rot-task-1791040393213-0",
-          "task_id": "task-1791040393213",
+          "id": "rot-task-1791041930546-0",
+          "task_id": "task-1791041930546",
           "user_id": "user-1791039701145",
           "position": 0,
           "profile": {
@@ -275,10 +333,331 @@
           }
         },
         {
-          "id": "rot-task-1791040393213-1",
-          "task_id": "task-1791040393213",
-          "user_id": "user-1791039394978",
+          "id": "rot-task-1791041930546-1",
+          "task_id": "task-1791041930546",
+          "user_id": "user-1791041930498",
           "position": 1,
+          "profile": {
+            "id": "user-1791041930498",
+            "name": "Aman Sharma",
+            "username": "aman_0487",
+            "password": "password123",
+            "email": "aman_0487@gmail.com",
+            "created_at": "2026-10-03T15:38:50.498Z"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-1791041930546",
+        "current_rotation_position": 1,
+        "current_assignee_id": "user-1791041930498",
+        "next_due_at": "2026-10-06T15:38:50.554Z",
+        "next_reminder_at": "2026-10-06T15:38:50.554Z",
+        "is_paused": false,
+        "updated_at": "2026-10-03T15:38:50.554Z",
+        "last_completed_at": "2026-10-03T15:38:50.554Z",
+        "last_completed_by_id": "user-1791039701145"
+      },
+      "current_assignee": {
+        "id": "user-1791041930498",
+        "name": "Aman Sharma",
+        "username": "aman_0487",
+        "password": "password123",
+        "email": "aman_0487@gmail.com",
+        "created_at": "2026-10-03T15:38:50.498Z"
+      },
+      "active_exchange": null,
+      "recent_completions": [
+        {
+          "id": "comp-1791041930554",
+          "task_id": "task-1791041930546",
+          "user_id": "user-1791039701145",
+          "completed_at": "2026-10-03T15:38:50.554Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "notes": "Completed in the morning!",
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "act-1791041930554",
+          "task_id": "task-1791041930546",
+          "actor_id": "user-1791039701145",
+          "action": "completed",
+          "details": "simran completed turn",
+          "created_at": "2026-10-03T15:38:50.554Z",
+          "actor": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "act-1791041930546",
+          "task_id": "task-1791041930546",
+          "actor_id": "user-1791041930498",
+          "action": "rotation_changed",
+          "details": "Aman Sharma created chore \"Take Out Trash & Recycling\" with 2 flatmates",
+          "created_at": "2026-10-03T15:38:50.546Z",
+          "actor": {
+            "id": "user-1791041930498",
+            "name": "Aman Sharma",
+            "username": "aman_0487",
+            "password": "password123",
+            "email": "aman_0487@gmail.com",
+            "created_at": "2026-10-03T15:38:50.498Z"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-1791041858711",
+      "group_id": "group-simran",
+      "name": "Take Out Trash & Recycling",
+      "description": "Bin at the front gate every Tuesday",
+      "interval_type": "days",
+      "interval_value": 3,
+      "is_active": true,
+      "created_at": "2026-10-03T15:37:38.711Z",
+      "rotation": [
+        {
+          "id": "rot-task-1791041858711-0",
+          "task_id": "task-1791041858711",
+          "user_id": "user-1791039701145",
+          "position": 0,
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "rot-task-1791041858711-1",
+          "task_id": "task-1791041858711",
+          "user_id": "user-1791041858672",
+          "position": 1,
+          "profile": {
+            "id": "user-1791041858672",
+            "name": "Aman Sharma",
+            "username": "aman_8665",
+            "password": "password123",
+            "email": "aman_8665@gmail.com",
+            "created_at": "2026-10-03T15:37:38.672Z"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-1791041858711",
+        "current_rotation_position": 1,
+        "current_assignee_id": "user-1791039701145",
+        "next_due_at": "2026-10-06T15:37:38.719Z",
+        "next_reminder_at": "2026-10-06T15:37:38.719Z",
+        "is_paused": false,
+        "updated_at": "2026-10-03T15:37:39.094Z",
+        "last_completed_at": "2026-10-03T15:37:38.719Z",
+        "last_completed_by_id": "user-1791039701145"
+      },
+      "current_assignee": {
+        "id": "user-1791039701145",
+        "name": "simran",
+        "username": "simmi",
+        "password": "12345",
+        "email": "simmi@flat.com",
+        "created_at": "2026-10-03T15:01:41.145Z"
+      },
+      "active_exchange": {
+        "id": "ex-1791041859094",
+        "task_id": "task-1791041858711",
+        "occurrence_id": "occ-1791041859094",
+        "original_assignee_id": "user-1791041858672",
+        "replacement_assignee_id": "user-1791039701145",
+        "note": "Can you take this?",
+        "is_active": true,
+        "created_at": "2026-10-03T15:37:39.094Z",
+        "original_assignee": {
+          "id": "user-1791041858672",
+          "name": "Aman Sharma",
+          "username": "aman_8665",
+          "password": "password123",
+          "email": "aman_8665@gmail.com",
+          "created_at": "2026-10-03T15:37:38.672Z"
+        },
+        "replacement_assignee": {
+          "id": "user-1791039701145",
+          "name": "simran",
+          "username": "simmi",
+          "password": "12345",
+          "email": "simmi@flat.com",
+          "created_at": "2026-10-03T15:01:41.145Z"
+        }
+      },
+      "recent_completions": [
+        {
+          "id": "comp-1791041858719",
+          "task_id": "task-1791041858711",
+          "user_id": "user-1791039701145",
+          "completed_at": "2026-10-03T15:37:38.719Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "notes": "Completed in the morning!",
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "act-1791041859094",
+          "task_id": "task-1791041858711",
+          "actor_id": "user-1791041858672",
+          "action": "exchanged",
+          "details": "Aman Sharma passed turn to simran: \"Can you take this?\"",
+          "created_at": "2026-10-03T15:37:39.094Z",
+          "actor": {
+            "id": "user-1791041858672",
+            "name": "Aman Sharma",
+            "username": "aman_8665",
+            "password": "password123",
+            "email": "aman_8665@gmail.com",
+            "created_at": "2026-10-03T15:37:38.672Z"
+          }
+        },
+        {
+          "id": "act-1791041858719",
+          "task_id": "task-1791041858711",
+          "actor_id": "user-1791039701145",
+          "action": "completed",
+          "details": "simran completed turn",
+          "created_at": "2026-10-03T15:37:38.719Z",
+          "actor": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "act-1791041858711",
+          "task_id": "task-1791041858711",
+          "actor_id": "user-1791041858672",
+          "action": "rotation_changed",
+          "details": "Aman Sharma created chore \"Take Out Trash & Recycling\" with 2 flatmates",
+          "created_at": "2026-10-03T15:37:38.711Z",
+          "actor": {
+            "id": "user-1791041858672",
+            "name": "Aman Sharma",
+            "username": "aman_8665",
+            "password": "password123",
+            "email": "aman_8665@gmail.com",
+            "created_at": "2026-10-03T15:37:38.672Z"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-1791041801005",
+      "group_id": "group-1791041693879",
+      "name": "trashj",
+      "description": "",
+      "interval_type": "days",
+      "interval_value": 3,
+      "is_active": true,
+      "created_at": "2026-10-03T15:36:41.005Z",
+      "rotation": [
+        {
+          "id": "rot-task-1791041801005-0",
+          "task_id": "task-1791041801005",
+          "user_id": "user-1791039394978",
+          "position": 0,
+          "profile": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "rot-task-1791041801005-1",
+          "task_id": "task-1791041801005",
+          "user_id": "user-1791039193862",
+          "position": 1,
+          "profile": {
+            "id": "user-1791039193862",
+            "name": "sinchan",
+            "username": "sinchan",
+            "password": "1234",
+            "email": "sinchan@flat.com",
+            "created_at": "2026-10-03T14:53:13.862Z"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-1791041801005",
+        "current_rotation_position": 0,
+        "current_assignee_id": "user-1791039394978",
+        "next_due_at": "2026-10-06T15:36:52.236Z",
+        "next_reminder_at": "2026-10-06T15:36:52.236Z",
+        "is_paused": false,
+        "updated_at": "2026-10-03T15:36:52.236Z",
+        "last_completed_at": "2026-10-03T15:36:52.236Z",
+        "last_completed_by_id": "user-1791039193862"
+      },
+      "current_assignee": {
+        "id": "user-1791039394978",
+        "name": "Salman",
+        "username": "sallu",
+        "password": "28082027",
+        "email": "sallu@flat.com",
+        "created_at": "2026-10-03T14:56:34.978Z"
+      },
+      "active_exchange": null,
+      "recent_completions": [
+        {
+          "id": "comp-1791041812236",
+          "task_id": "task-1791041801005",
+          "user_id": "user-1791039193862",
+          "completed_at": "2026-10-03T15:36:52.236Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "profile": {
+            "id": "user-1791039193862",
+            "name": "sinchan",
+            "username": "sinchan",
+            "password": "1234",
+            "email": "sinchan@flat.com",
+            "created_at": "2026-10-03T14:53:13.862Z"
+          }
+        },
+        {
+          "id": "comp-1791041807457",
+          "task_id": "task-1791041801005",
+          "user_id": "user-1791039394978",
+          "completed_at": "2026-10-03T15:36:47.456Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
           "profile": {
             "id": "user-1791039394978",
             "name": "Salman",
@@ -289,10 +668,71 @@
           }
         }
       ],
+      "activities": [
+        {
+          "id": "act-1791041812236",
+          "task_id": "task-1791041801005",
+          "actor_id": "user-1791039193862",
+          "action": "completed",
+          "details": "sinchan completed turn",
+          "created_at": "2026-10-03T15:36:52.236Z",
+          "actor": {
+            "id": "user-1791039193862",
+            "name": "sinchan",
+            "username": "sinchan",
+            "password": "1234",
+            "email": "sinchan@flat.com",
+            "created_at": "2026-10-03T14:53:13.862Z"
+          }
+        },
+        {
+          "id": "act-1791041807457",
+          "task_id": "task-1791041801005",
+          "actor_id": "user-1791039394978",
+          "action": "completed",
+          "details": "Salman completed turn",
+          "created_at": "2026-10-03T15:36:47.456Z",
+          "actor": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "act-1791041801005",
+          "task_id": "task-1791041801005",
+          "actor_id": "user-1791039394978",
+          "action": "rotation_changed",
+          "details": "Salman created chore \"trashj\" with 2 flatmates",
+          "created_at": "2026-10-03T15:36:41.005Z",
+          "actor": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-1791040393213",
+      "group_id": "group-simran",
+      "name": "Clean Kitchen",
+      "description": "Wipe gas stove and counter",
+      "interval_type": "days",
+      "interval_value": 2,
+      "is_active": true,
+      "created_at": "2026-10-03T15:13:13.213Z",
+      "rotation": [],
       "state": {
         "task_id": "task-1791040393213",
         "current_rotation_position": 0,
-        "current_assignee_id": "user-1791039701145",
+        "current_assignee_id": "",
         "next_due_at": "2026-10-05T15:14:38.793Z",
         "next_reminder_at": "2026-10-05T15:14:38.793Z",
         "is_paused": false,
@@ -301,12 +741,12 @@
         "last_completed_by_id": "user-1791039394978"
       },
       "current_assignee": {
-        "id": "user-1791039701145",
-        "name": "simran",
-        "username": "simmi",
-        "password": "12345",
-        "email": "simmi@flat.com",
-        "created_at": "2026-10-03T15:01:41.145Z"
+        "id": "user-1791039394978",
+        "name": "Salman",
+        "username": "sallu",
+        "password": "28082027",
+        "email": "sallu@flat.com",
+        "created_at": "2026-10-03T14:56:34.978Z"
       },
       "active_exchange": null,
       "recent_completions": [
