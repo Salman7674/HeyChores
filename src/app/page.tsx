@@ -26,6 +26,8 @@ import {
   User,
   Lock,
   ArrowRight,
+  Trash2,
+  LogOut,
 } from 'lucide-react';
 import { isPast, parseISO, isToday, format } from 'date-fns';
 
@@ -39,10 +41,14 @@ export default function MobileDashboardPage() {
     activeGroup,
     tasks,
     markTaskCompleted,
+    deleteGroup,
+    leaveGroup,
     isLoading,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<TabView>('chores');
+  const [deletingFlat, setDeletingFlat] = useState(false);
+  const [leavingFlat, setLeavingFlat] = useState(false);
 
   // Auth Form State (when logged out)
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -324,6 +330,32 @@ export default function MobileDashboardPage() {
     setCompletingTaskId(null);
   };
 
+  const handleDeleteActiveFlat = async () => {
+    if (!activeGroup) return;
+    const confirmMessage = `Are you sure you want to permanently delete "${activeGroup.name}"?\n\nThis will remove all chores, turns, and flat memberships permanently for all roommates.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setDeletingFlat(true);
+    const res = await deleteGroup(activeGroup.id);
+    setDeletingFlat(false);
+    if (!res.success) {
+      alert(res.message || 'Failed to delete flat');
+    }
+  };
+
+  const handleLeaveActiveFlat = async () => {
+    if (!activeGroup) return;
+    const confirmMessage = `Are you sure you want to leave "${activeGroup.name}"?`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setLeavingFlat(true);
+    const res = await leaveGroup(activeGroup.id);
+    setLeavingFlat(false);
+    if (!res.success) {
+      alert(res.message || 'Failed to leave flat');
+    }
+  };
+
   const getDueLabel = (dueDateStr?: string) => {
     if (!dueDateStr) return 'Due soon';
     const due = parseISO(dueDateStr);
@@ -580,6 +612,59 @@ export default function MobileDashboardPage() {
                 <span>Create New Flat</span>
               </button>
             </div>
+
+            {/* Current Flat Info & Danger Zone */}
+            {activeGroup && (
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-400">Active Flat</span>
+                    <h3 className="text-lg font-black text-white">{activeGroup.name}</h3>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                    Code: <strong className="text-teal-300 font-mono tracking-wider">{activeGroup.invite_code}</strong>
+                  </span>
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Your Role:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      activeGroup.admin_user_id === currentUser?.id
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-slate-800 text-slate-300'
+                    }`}>
+                      {activeGroup.admin_user_id === currentUser?.id ? 'Admin / Creator' : 'Roommate'}
+                    </span>
+                  </div>
+
+                  {activeGroup.admin_user_id === currentUser?.id ? (
+                    <button
+                      onClick={handleDeleteActiveFlat}
+                      disabled={deletingFlat}
+                      className="w-full mt-2 py-3 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>{deletingFlat ? 'Deleting Flat...' : `Delete Flat "${activeGroup.name}"`}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleLeaveActiveFlat}
+                      disabled={leavingFlat}
+                      className="w-full mt-2 py-3 px-4 rounded-2xl bg-slate-800 hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>{leavingFlat ? 'Leaving...' : `Leave "${activeGroup.name}"`}</span>
+                    </button>
+                  )}
+                  <p className="text-[10px] text-slate-500 leading-relaxed text-center">
+                    {activeGroup.admin_user_id === currentUser?.id
+                      ? 'Deleting this flat permanently removes all chores, turns, and flat data for all roommates.'
+                      : 'Leaving this flat removes your membership from this household.'}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-3xl text-xs text-slate-400 space-y-1">
               <p className="font-semibold text-slate-300">Rotation Engine Principle:</p>

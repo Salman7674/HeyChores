@@ -1,0 +1,801 @@
+{
+  "users": [
+    {
+      "id": "user-ahmed",
+      "name": "Ahmed",
+      "username": "ahmed",
+      "password": "password123",
+      "email": "ahmed@greenhouse.flat",
+      "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "user-rahul",
+      "name": "Rahul",
+      "username": "rahul",
+      "password": "password123",
+      "email": "rahul@greenhouse.flat",
+      "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "user-sameer",
+      "name": "Sameer",
+      "username": "sameer",
+      "password": "password123",
+      "email": "sameer@greenhouse.flat",
+      "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "user-usman",
+      "name": "Usman",
+      "username": "usman",
+      "password": "password123",
+      "email": "usman@greenhouse.flat",
+      "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+    },
+    {
+      "id": "user-simran",
+      "name": "Simran",
+      "username": "simran",
+      "password": "password123",
+      "email": "simran@flat.com",
+      "created_at": "2026-10-03T15:11:26.767Z"
+    },
+    {
+      "id": "test-user-1",
+      "name": "Rahul",
+      "username": "rahul"
+    },
+    {
+      "id": "user-1791039086897",
+      "name": "Doraemon",
+      "username": "doraemon",
+      "password": "1234",
+      "email": "doraemon@flat.com",
+      "created_at": "2026-10-03T14:51:26.897Z"
+    },
+    {
+      "id": "user-1791039701145",
+      "name": "simran",
+      "username": "simmi",
+      "password": "12345",
+      "email": "simmi@flat.com",
+      "created_at": "2026-10-03T15:01:41.145Z"
+    },
+    {
+      "id": "user-1791039394978",
+      "name": "Salman",
+      "username": "sallu",
+      "password": "28082027",
+      "email": "sallu@flat.com",
+      "created_at": "2026-10-03T14:56:34.978Z"
+    },
+    {
+      "id": "user-1791039193862",
+      "name": "sinchan",
+      "username": "sinchan",
+      "password": "1234",
+      "email": "sinchan@flat.com",
+      "created_at": "2026-10-03T14:53:13.862Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-green-house",
+      "name": "Green House",
+      "invite_code": "X7K92P",
+      "admin_user_id": "user-ahmed",
+      "timezone": "Asia/Kolkata",
+      "created_at": "2026-09-03T15:11:26.761Z",
+      "member_count": 4
+    },
+    {
+      "id": "group-simran",
+      "name": "ankleshwarongc",
+      "invite_code": "83RZLE",
+      "admin_user_id": "user-simran",
+      "timezone": "Asia/Kolkata",
+      "created_at": "2026-10-03T15:11:26.767Z",
+      "member_count": 3
+    }
+  ],
+  "members": [
+    {
+      "id": "gm-ahmed",
+      "group_id": "group-green-house",
+      "user_id": "user-ahmed",
+      "role": "admin",
+      "joined_at": "2026-09-03T15:11:26.761Z",
+      "profile": {
+        "id": "user-ahmed",
+        "name": "Ahmed",
+        "username": "ahmed",
+        "password": "password123",
+        "email": "ahmed@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-rahul",
+      "group_id": "group-green-house",
+      "user_id": "user-rahul",
+      "role": "member",
+      "joined_at": "2026-09-05T15:11:26.761Z",
+      "profile": {
+        "id": "user-rahul",
+        "name": "Rahul",
+        "username": "rahul",
+        "password": "password123",
+        "email": "rahul@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-sameer",
+      "group_id": "group-green-house",
+      "user_id": "user-sameer",
+      "role": "member",
+      "joined_at": "2026-09-08T15:11:26.761Z",
+      "profile": {
+        "id": "user-sameer",
+        "name": "Sameer",
+        "username": "sameer",
+        "password": "password123",
+        "email": "sameer@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+      },
+      "is_away": true,
+      "away_period": {
+        "id": "away-sameer-1",
+        "group_id": "group-green-house",
+        "user_id": "user-sameer",
+        "start_at": "2026-10-02T15:11:26.761Z",
+        "end_at": "2026-10-09T15:11:26.761Z",
+        "created_at": "2026-10-02T15:11:26.761Z"
+      }
+    },
+    {
+      "id": "gm-usman",
+      "group_id": "group-green-house",
+      "user_id": "user-usman",
+      "role": "member",
+      "joined_at": "2026-09-13T15:11:26.761Z",
+      "profile": {
+        "id": "user-usman",
+        "name": "Usman",
+        "username": "usman",
+        "password": "password123",
+        "email": "usman@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-simran",
+      "group_id": "group-simran",
+      "user_id": "user-simran",
+      "role": "admin",
+      "joined_at": "2026-10-03T15:11:26.767Z",
+      "profile": {
+        "id": "user-simran",
+        "name": "Simran",
+        "username": "simran",
+        "password": "password123",
+        "email": "simran@flat.com",
+        "created_at": "2026-10-03T15:11:26.767Z"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791040286768",
+      "group_id": "group-simran",
+      "user_id": "test-user-1",
+      "role": "member",
+      "joined_at": "2026-10-03T15:11:26.768Z",
+      "profile": {
+        "id": "test-user-1",
+        "name": "Rahul",
+        "username": "rahul"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791039730844",
+      "group_id": "group-simran",
+      "user_id": "user-1791039701145",
+      "role": "admin",
+      "joined_at": "2026-10-03T15:02:10.844Z",
+      "profile": {
+        "id": "user-1791039701145",
+        "name": "simran",
+        "username": "simmi",
+        "password": "12345",
+        "email": "simmi@flat.com",
+        "created_at": "2026-10-03T15:01:41.145Z"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791040385270",
+      "group_id": "group-simran",
+      "user_id": "user-1791039394978",
+      "role": "member",
+      "joined_at": "2026-10-03T15:13:05.270Z",
+      "profile": {
+        "id": "user-1791039394978",
+        "name": "Salman",
+        "username": "sallu",
+        "password": "28082027",
+        "email": "sallu@flat.com",
+        "created_at": "2026-10-03T14:56:34.978Z"
+      },
+      "is_away": false
+    },
+    {
+      "id": "gm-1791039730844",
+      "group_id": "group-1791039730844",
+      "user_id": "user-1791039701145",
+      "role": "admin",
+      "joined_at": "2026-10-03T15:02:10.844Z",
+      "profile": {
+        "id": "user-1791039701145",
+        "name": "simran",
+        "username": "simmi",
+        "password": "12345",
+        "email": "simmi@flat.com",
+        "created_at": "2026-10-03T15:01:41.145Z"
+      },
+      "is_away": false
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1791040393213",
+      "group_id": "group-simran",
+      "name": "Clean Kitchen",
+      "description": "Wipe gas stove and counter",
+      "interval_type": "days",
+      "interval_value": 2,
+      "is_active": true,
+      "created_at": "2026-10-03T15:13:13.213Z",
+      "rotation": [
+        {
+          "id": "rot-task-1791040393213-0",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039701145",
+          "position": 0,
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "rot-task-1791040393213-1",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039394978",
+          "position": 1,
+          "profile": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-1791040393213",
+        "current_rotation_position": 0,
+        "current_assignee_id": "user-1791039701145",
+        "next_due_at": "2026-10-05T15:14:38.793Z",
+        "next_reminder_at": "2026-10-05T15:14:38.793Z",
+        "is_paused": false,
+        "updated_at": "2026-10-03T15:14:38.793Z",
+        "last_completed_at": "2026-10-03T15:14:38.793Z",
+        "last_completed_by_id": "user-1791039394978"
+      },
+      "current_assignee": {
+        "id": "user-1791039701145",
+        "name": "simran",
+        "username": "simmi",
+        "password": "12345",
+        "email": "simmi@flat.com",
+        "created_at": "2026-10-03T15:01:41.145Z"
+      },
+      "active_exchange": null,
+      "recent_completions": [
+        {
+          "id": "comp-1791040478793",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039394978",
+          "completed_at": "2026-10-03T15:14:38.793Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "profile": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "comp-1791040475290",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039701145",
+          "completed_at": "2026-10-03T15:14:35.290Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "comp-1791040469343",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039394978",
+          "completed_at": "2026-10-03T15:14:29.342Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "profile": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "comp-1791040461583",
+          "task_id": "task-1791040393213",
+          "user_id": "user-1791039701145",
+          "completed_at": "2026-10-03T15:14:21.583Z",
+          "was_exchanged": false,
+          "original_assignee_id": null,
+          "profile": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "act-1791040478793",
+          "task_id": "task-1791040393213",
+          "actor_id": "user-1791039394978",
+          "action": "completed",
+          "details": "Salman completed turn",
+          "created_at": "2026-10-03T15:14:38.793Z",
+          "actor": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "act-1791040475290",
+          "task_id": "task-1791040393213",
+          "actor_id": "user-1791039701145",
+          "action": "completed",
+          "details": "simran completed turn",
+          "created_at": "2026-10-03T15:14:35.290Z",
+          "actor": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "act-1791040469343",
+          "task_id": "task-1791040393213",
+          "actor_id": "user-1791039394978",
+          "action": "completed",
+          "details": "Salman completed turn",
+          "created_at": "2026-10-03T15:14:29.342Z",
+          "actor": {
+            "id": "user-1791039394978",
+            "name": "Salman",
+            "username": "sallu",
+            "password": "28082027",
+            "email": "sallu@flat.com",
+            "created_at": "2026-10-03T14:56:34.978Z"
+          }
+        },
+        {
+          "id": "act-1791040461583",
+          "task_id": "task-1791040393213",
+          "actor_id": "user-1791039701145",
+          "action": "completed",
+          "details": "simran completed turn",
+          "created_at": "2026-10-03T15:14:21.583Z",
+          "actor": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        },
+        {
+          "id": "act-1791040393213",
+          "task_id": "task-1791040393213",
+          "actor_id": "user-1791039701145",
+          "action": "rotation_changed",
+          "details": "simran created chore \"Clean Kitchen\" with 2 flatmates",
+          "created_at": "2026-10-03T15:13:13.213Z",
+          "actor": {
+            "id": "user-1791039701145",
+            "name": "simran",
+            "username": "simmi",
+            "password": "12345",
+            "email": "simmi@flat.com",
+            "created_at": "2026-10-03T15:01:41.145Z"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-clean-hall",
+      "group_id": "group-green-house",
+      "name": "Clean Hall",
+      "description": "Sweep and mop the living hall, wipe down coffee table and organize shoes.",
+      "interval_type": "days",
+      "interval_value": 3,
+      "is_active": true,
+      "created_at": "2026-09-13T15:11:26.761Z",
+      "rotation": [
+        {
+          "id": "rot-1",
+          "task_id": "task-clean-hall",
+          "user_id": "user-ahmed",
+          "position": 0,
+          "profile": {
+            "id": "user-ahmed",
+            "name": "Ahmed",
+            "username": "ahmed",
+            "password": "password123",
+            "email": "ahmed@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-2",
+          "task_id": "task-clean-hall",
+          "user_id": "user-rahul",
+          "position": 1,
+          "profile": {
+            "id": "user-rahul",
+            "name": "Rahul",
+            "username": "rahul",
+            "password": "password123",
+            "email": "rahul@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-3",
+          "task_id": "task-clean-hall",
+          "user_id": "user-sameer",
+          "position": 2,
+          "profile": {
+            "id": "user-sameer",
+            "name": "Sameer",
+            "username": "sameer",
+            "password": "password123",
+            "email": "sameer@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-4",
+          "task_id": "task-clean-hall",
+          "user_id": "user-usman",
+          "position": 3,
+          "profile": {
+            "id": "user-usman",
+            "name": "Usman",
+            "username": "usman",
+            "password": "password123",
+            "email": "usman@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-clean-hall",
+        "current_rotation_position": 0,
+        "current_assignee_id": "user-ahmed",
+        "last_completed_at": "2026-09-30T15:11:26.761Z",
+        "last_completed_by_id": "user-usman",
+        "next_due_at": "2026-10-03T15:11:26.761Z",
+        "next_reminder_at": "2026-10-03T15:11:26.761Z",
+        "is_paused": false,
+        "updated_at": "2026-09-30T15:11:26.761Z"
+      },
+      "current_assignee": {
+        "id": "user-ahmed",
+        "name": "Ahmed",
+        "username": "ahmed",
+        "password": "password123",
+        "email": "ahmed@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+      },
+      "active_exchange": null,
+      "recent_completions": [
+        {
+          "id": "comp-1",
+          "task_id": "task-clean-hall",
+          "user_id": "user-usman",
+          "completed_at": "2026-09-30T15:11:26.761Z",
+          "was_exchanged": false,
+          "profile": {
+            "id": "user-usman",
+            "name": "Usman",
+            "username": "usman",
+            "password": "password123",
+            "email": "usman@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "comp-2",
+          "task_id": "task-clean-hall",
+          "user_id": "user-sameer",
+          "completed_at": "2026-09-27T15:11:26.761Z",
+          "was_exchanged": false,
+          "profile": {
+            "id": "user-sameer",
+            "name": "Sameer",
+            "username": "sameer",
+            "password": "password123",
+            "email": "sameer@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "comp-3",
+          "task_id": "task-clean-hall",
+          "user_id": "user-rahul",
+          "completed_at": "2026-09-24T15:11:26.761Z",
+          "was_exchanged": false,
+          "profile": {
+            "id": "user-rahul",
+            "name": "Rahul",
+            "username": "rahul",
+            "password": "password123",
+            "email": "rahul@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-clean-bathroom",
+      "group_id": "group-green-house",
+      "name": "Clean Bathroom",
+      "description": "Scrub tiles, wash sink, clean mirror, replace hand towels and sanitize toilet.",
+      "interval_type": "weeks",
+      "interval_value": 1,
+      "is_active": true,
+      "created_at": "2026-09-13T15:11:26.761Z",
+      "rotation": [
+        {
+          "id": "rot-b-1",
+          "task_id": "task-clean-bathroom",
+          "user_id": "user-sameer",
+          "position": 0,
+          "profile": {
+            "id": "user-sameer",
+            "name": "Sameer",
+            "username": "sameer",
+            "password": "password123",
+            "email": "sameer@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-b-2",
+          "task_id": "task-clean-bathroom",
+          "user_id": "user-usman",
+          "position": 1,
+          "profile": {
+            "id": "user-usman",
+            "name": "Usman",
+            "username": "usman",
+            "password": "password123",
+            "email": "usman@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-b-3",
+          "task_id": "task-clean-bathroom",
+          "user_id": "user-ahmed",
+          "position": 2,
+          "profile": {
+            "id": "user-ahmed",
+            "name": "Ahmed",
+            "username": "ahmed",
+            "password": "password123",
+            "email": "ahmed@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-b-4",
+          "task_id": "task-clean-bathroom",
+          "user_id": "user-rahul",
+          "position": 3,
+          "profile": {
+            "id": "user-rahul",
+            "name": "Rahul",
+            "username": "rahul",
+            "password": "password123",
+            "email": "rahul@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-clean-bathroom",
+        "current_rotation_position": 1,
+        "current_assignee_id": "user-usman",
+        "last_completed_at": "2026-09-27T15:11:26.761Z",
+        "last_completed_by_id": "user-sameer",
+        "next_due_at": "2026-10-04T15:11:26.761Z",
+        "next_reminder_at": "2026-10-04T15:11:26.761Z",
+        "is_paused": false,
+        "updated_at": "2026-09-27T15:11:26.761Z"
+      },
+      "current_assignee": {
+        "id": "user-usman",
+        "name": "Usman",
+        "username": "usman",
+        "password": "password123",
+        "email": "usman@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+      },
+      "active_exchange": null,
+      "recent_completions": [
+        {
+          "id": "comp-b-1",
+          "task_id": "task-clean-bathroom",
+          "user_id": "user-sameer",
+          "completed_at": "2026-09-27T15:11:26.761Z",
+          "was_exchanged": false,
+          "profile": {
+            "id": "user-sameer",
+            "name": "Sameer",
+            "username": "sameer",
+            "password": "password123",
+            "email": "sameer@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+          }
+        }
+      ]
+    },
+    {
+      "id": "task-buy-groceries",
+      "group_id": "group-green-house",
+      "name": "Buy Groceries",
+      "description": "Restock milk, bread, cooking oil, spices, detergent, and trash bags.",
+      "interval_type": "days",
+      "interval_value": 5,
+      "is_active": true,
+      "created_at": "2026-09-13T15:11:26.761Z",
+      "rotation": [
+        {
+          "id": "rot-g-1",
+          "task_id": "task-buy-groceries",
+          "user_id": "user-rahul",
+          "position": 0,
+          "profile": {
+            "id": "user-rahul",
+            "name": "Rahul",
+            "username": "rahul",
+            "password": "password123",
+            "email": "rahul@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-g-2",
+          "task_id": "task-buy-groceries",
+          "user_id": "user-ahmed",
+          "position": 1,
+          "profile": {
+            "id": "user-ahmed",
+            "name": "Ahmed",
+            "username": "ahmed",
+            "password": "password123",
+            "email": "ahmed@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-g-3",
+          "task_id": "task-buy-groceries",
+          "user_id": "user-usman",
+          "position": 2,
+          "profile": {
+            "id": "user-usman",
+            "name": "Usman",
+            "username": "usman",
+            "password": "password123",
+            "email": "usman@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+          }
+        },
+        {
+          "id": "rot-g-4",
+          "task_id": "task-buy-groceries",
+          "user_id": "user-sameer",
+          "position": 3,
+          "profile": {
+            "id": "user-sameer",
+            "name": "Sameer",
+            "username": "sameer",
+            "password": "password123",
+            "email": "sameer@greenhouse.flat",
+            "avatar_url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+          }
+        }
+      ],
+      "state": {
+        "task_id": "task-buy-groceries",
+        "current_rotation_position": 0,
+        "current_assignee_id": "user-rahul",
+        "last_completed_at": "2026-09-30T15:11:26.761Z",
+        "last_completed_by_id": "user-sameer",
+        "next_due_at": "2026-10-05T15:11:26.761Z",
+        "next_reminder_at": "2026-10-05T15:11:26.761Z",
+        "is_paused": false,
+        "updated_at": "2026-09-30T15:11:26.761Z"
+      },
+      "current_assignee": {
+        "id": "user-rahul",
+        "name": "Rahul",
+        "username": "rahul",
+        "password": "password123",
+        "email": "rahul@greenhouse.flat",
+        "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80"
+      },
+      "active_exchange": null,
+      "recent_completions": []
+    }
+  ],
+  "away_periods": [
+    {
+      "id": "away-sameer-1",
+      "group_id": "group-green-house",
+      "user_id": "user-sameer",
+      "start_at": "2026-10-02T15:11:26.761Z",
+      "end_at": "2026-10-09T15:11:26.761Z",
+      "created_at": "2026-10-02T15:11:26.761Z"
+    }
+  ]
+}

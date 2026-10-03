@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   Group,
   GroupMember,
@@ -19,12 +19,6 @@ import {
   MOCK_TASKS,
   MOCK_AWAY_PERIODS,
 } from '@/lib/mock-data';
-import {
-  advanceTaskRotation,
-  handleMemberRemovalFromRotation,
-  calculateNextDueDate,
-  calculateNextReminder,
-} from '@/lib/rotation-engine';
 import { isSupabaseConfigured, createClient } from '@/lib/supabase/client';
 import confetti from 'canvas-confetti';
 
@@ -65,6 +59,8 @@ interface AppContextType {
   regenerateInviteCode: () => Promise<string>;
   createGroup: (name: string, timezone?: string) => Promise<Group>;
   joinGroupByCode: (code: string) => Promise<{ success: boolean; message?: string }>;
+  deleteGroup: (groupId: string) => Promise<{ success: boolean; message?: string }>;
+  leaveGroup: (groupId: string) => Promise<{ success: boolean; message?: string }>;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
 }
@@ -73,128 +69,151 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSupabaseMode] = useState<boolean>(() => isSupabaseConfigured());
-  const [allUsers, setAllUsers] = useState<Profile[]>(MOCK_PROFILES);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [allUsers, setAllUsers] = useState<Profile[]>(MOCK_PROFILES);
 
-  // Global repository stores in memory / localStorage
-  const [allGroupsStore, setAllGroupsStore] = useState<Group[]>([MOCK_GROUP]);
-  const [allMembersStore, setAllMembersStore] = useState<GroupMember[]>(MOCK_MEMBERS);
-  const [allTasksStore, setAllTasksStore] = useState<Task[]>(MOCK_TASKS);
-  const [allAwayStore, setAllAwayStore] = useState<AwayPeriod[]>(MOCK_AWAY_PERIODS);
-
-  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [activeGroup, setActiveGroupState] = useState<Group | null>(null);
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [awayPeriods, setAwayPeriods] = useState<AwayPeriod[]>([]);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const activeGroupIdRef = useRef<string | null>(null);
+
+  /**
+   * Fetch current flat data and user groups from centralized server database
+   */
+  const fetchServerData = useCallback(async (userId?: string, targetGroupId?: string) => {
+    try {
+      const uId = userId || currentUser?.id;
+      if (!uId) {
+        setIsLoading(false);
+        return;
+      }
+
+      const gId = targetGroupId || activeGroupIdRef.current || '';
+      const res = await fetch(`/api/flats?userId=${encodeURIComponent(uId)}${gId ? `&groupId=${encodeURIComponent(gId)}` : ''}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data.success) {
+        if (data.allUsers) setAllUsers(data.allUsers);
+        setGroups(data.groups || []);
+
+        const currentActive = data.activeGroup;
+        setActiveGroupState(currentActive);
+        activeGroupIdRef.current = currentActive?.id || null;
+
+        setMembers(data.members || []);
+        setTasks(data.tasks || []);
+        setAwayPeriods(data.awayPeriods || []);
+      }
+    } catch (err) {
+      console.error('Error fetching centralized flat data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUser?.id]);
+
+  /**
+   * One-time sync legacy localStorage data to server so existing local flats (like Simran) are never lost
+   */
+  const syncLegacyLocalStorage = async () => {
+    try {
+      const savedUsers = localStorage.getItem('heychores_users');
+      const savedGroups = localStorage.getItem('heychores_all_groups');
+      const savedMembers = localStorage.getItem('heychores_all_members');
+      const savedTasks = localStorage.getItem('heychores_all_tasks');
+      const savedAway = localStorage.getItem('heychores_all_away');
+
+      if (savedGroups || savedUsers || savedMembers || savedTasks) {
+        await fetch('/api/flats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'sync',
+            localUsers: savedUsers ? JSON.parse(savedUsers) : [],
+            localGroups: savedGroups ? JSON.parse(savedGroups) : [],
+            localMembers: savedMembers ? JSON.parse(savedMembers) : [],
+            localTasks: savedTasks ? JSON.parse(savedTasks) : [],
+            localAway: savedAway ? JSON.parse(savedAway) : [],
+          }),
+        });
+      }
+    } catch (e) {
+      console.warn('LocalStorage legacy sync note:', e);
+    }
+  };
 
   // Initialize Auth & Storage
   useEffect(() => {
     async function initAuth() {
+      setIsLoading(true);
+      await syncLegacyLocalStorage();
+
       if (isSupabaseMode) {
         try {
           const supabase = createClient();
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            setCurrentUser({
+            const profile: Profile = {
               id: user.id,
               name: user.user_metadata?.name || user.email?.split('@')[0] || 'Roommate',
               username: user.user_metadata?.username || user.email?.split('@')[0],
               email: user.email,
               avatar_url: user.user_metadata?.avatar_url,
-            });
+            };
+            setCurrentUser(profile);
+            await fetchServerData(profile.id);
+            return;
           }
         } catch (err) {
           console.error('Supabase user check error:', err);
         }
-      } else {
-        // In local mode, load all persistent stores
+      }
+
+      // Check saved user session
+      const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('heychores_current_user_id') : null;
+      if (savedUserId) {
         try {
-          let usersList = MOCK_PROFILES;
-          const savedUsers = localStorage.getItem('heychores_users');
-          if (savedUsers) {
-            usersList = JSON.parse(savedUsers);
-            setAllUsers(usersList);
-          } else {
-            localStorage.setItem('heychores_users', JSON.stringify(MOCK_PROFILES));
-          }
-
-          const savedAllGroups = localStorage.getItem('heychores_all_groups');
-          if (savedAllGroups) setAllGroupsStore(JSON.parse(savedAllGroups));
-
-          const savedAllMembers = localStorage.getItem('heychores_all_members');
-          if (savedAllMembers) setAllMembersStore(JSON.parse(savedAllMembers));
-
-          const savedAllTasks = localStorage.getItem('heychores_all_tasks');
-          if (savedAllTasks) setAllTasksStore(JSON.parse(savedAllTasks));
-
-          const savedAllAway = localStorage.getItem('heychores_all_away');
-          if (savedAllAway) setAllAwayStore(JSON.parse(savedAllAway));
-
-          const savedUserId = localStorage.getItem('heychores_current_user_id');
-          if (savedUserId) {
-            const found = usersList.find((p) => p.id === savedUserId);
-            if (found) setCurrentUser(found);
+          const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'me', userId: savedUserId }),
+          });
+          const data = await res.json();
+          if (data.success && data.user) {
+            setCurrentUser(data.user);
+            await fetchServerData(data.user.id);
+            return;
           }
         } catch (e) {
-          console.warn('LocalStorage load error:', e);
+          console.warn('Error fetching active user session:', e);
         }
       }
+
       setIsLoading(false);
     }
 
     initAuth();
-  }, [isSupabaseMode]);
+  }, [fetchServerData, isSupabaseMode]);
 
-  // Derived: Only groups where currentUser is an explicit member!
-  const userMemberships = currentUser
-    ? allMembersStore.filter((m) => m.user_id === currentUser.id)
-    : [];
-  const userGroupIds = userMemberships.map((m) => m.group_id);
-  const userGroups = allGroupsStore.filter((g) => userGroupIds.includes(g.id));
+  // Periodic centralized synchronization (polling every 5 seconds)
+  useEffect(() => {
+    if (!currentUser) return;
+    const interval = setInterval(() => {
+      fetchServerData(currentUser.id, activeGroupIdRef.current || undefined);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentUser, fetchServerData]);
 
-  // Determine active group: either activeGroupId or first of userGroups
-  const activeGroup =
-    userGroups.find((g) => g.id === activeGroupId) ||
-    (userGroups.length > 0 ? userGroups[0] : null);
-
-  // Derived: Members of active group
-  const members = activeGroup
-    ? allMembersStore.filter((m) => m.group_id === activeGroup.id)
-    : [];
-
-  // Derived: Tasks belonging ONLY to active group
-  const tasks = activeGroup
-    ? allTasksStore.filter((t) => t.group_id === activeGroup.id)
-    : [];
-
-  // Derived: Away periods of active group
-  const awayPeriods = activeGroup
-    ? allAwayStore.filter((a) => a.group_id === activeGroup.id)
-    : [];
-
-  // Helper to persist changes
-  const saveAllStores = (
-    newAllTasks?: Task[],
-    newAllMembers?: GroupMember[],
-    newAllAway?: AwayPeriod[],
-    newAllGroups?: Group[]
-  ) => {
-    if (!isSupabaseMode) {
-      if (newAllTasks) {
-        setAllTasksStore(newAllTasks);
-        localStorage.setItem('heychores_all_tasks', JSON.stringify(newAllTasks));
-      }
-      if (newAllMembers) {
-        setAllMembersStore(newAllMembers);
-        localStorage.setItem('heychores_all_members', JSON.stringify(newAllMembers));
-      }
-      if (newAllAway) {
-        setAllAwayStore(newAllAway);
-        localStorage.setItem('heychores_all_away', JSON.stringify(newAllAway));
-      }
-      if (newAllGroups) {
-        setAllGroupsStore(newAllGroups);
-        localStorage.setItem('heychores_all_groups', JSON.stringify(newAllGroups));
-      }
+  const setActiveGroup = (group: Group) => {
+    setActiveGroupState(group);
+    activeGroupIdRef.current = group.id;
+    if (currentUser) {
+      fetchServerData(currentUser.id, group.id);
     }
   };
 
@@ -206,62 +225,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     password: string
   ): Promise<{ success: boolean; message?: string }> => {
     const term = usernameOrEmail.trim().toLowerCase();
-
     if (!term || !password.trim()) {
       return { success: false, message: 'Please enter both username and password.' };
     }
 
-    if (isSupabaseMode) {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: term,
-          password,
-        });
-        if (error) {
-          return { success: false, message: error.message };
-        }
-        if (data.user) {
-          const profile: Profile = {
-            id: data.user.id,
-            name: data.user.user_metadata?.name || term,
-            username: term,
-            email: data.user.email,
-          };
-          setCurrentUser(profile);
-          return { success: true };
-        }
-      } catch (err: any) {
-        return { success: false, message: err.message || 'Login failed' };
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login',
+          usernameOrEmail: term,
+          password: password.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success || !data.user) {
+        return { success: false, message: data.message || 'Invalid username or password.' };
       }
+
+      setCurrentUser(data.user);
+      localStorage.setItem('heychores_current_user_id', data.user.id);
+      await fetchServerData(data.user.id);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Login failed' };
     }
-
-    // Local / Offline authentication
-    const user = allUsers.find(
-      (u) =>
-        (u.username && u.username.toLowerCase() === term) ||
-        (u.email && u.email.toLowerCase() === term) ||
-        u.name.toLowerCase() === term
-    );
-
-    if (!user) {
-      return { success: false, message: 'No account found with that username or email.' };
-    }
-
-    // Validate password (default to password123 if not set)
-    const expectedPassword = user.password || 'password123';
-    if (password !== expectedPassword) {
-      return { success: false, message: 'Incorrect password. (Default is password123)' };
-    }
-
-    setCurrentUser(user);
-    localStorage.setItem('heychores_current_user_id', user.id);
-    return { success: true };
   };
 
   /**
    * Register a new account with Username & Password
-   * New user starts with ZERO flats and ZERO other people's chores!
+   * New user starts with ZERO flats and ZERO chores!
    */
   const registerUser = async (
     name: string,
@@ -276,52 +271,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Name, username, and password are required.' };
     }
 
-    // Check if username taken
-    const existing = allUsers.find(
-      (u) => u.username && u.username.toLowerCase() === cleanUsername
-    );
-    if (existing) {
-      return { success: false, message: `Username "@${cleanUsername}" is already taken. Please choose another.` };
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'register',
+          name: cleanName,
+          username: cleanUsername,
+          password: password.trim(),
+          email: email?.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success || !data.user) {
+        return { success: false, message: data.message || 'Registration failed.' };
+      }
+
+      setCurrentUser(data.user);
+      setActiveGroupState(null);
+      activeGroupIdRef.current = null;
+      setGroups([]);
+      setMembers([]);
+      setTasks([]);
+      setAwayPeriods([]);
+      localStorage.setItem('heychores_current_user_id', data.user.id);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Registration failed' };
     }
-
-    const newUser: Profile = {
-      id: `user-${Date.now()}`,
-      name: cleanName,
-      username: cleanUsername,
-      password: password.trim(),
-      email: email?.trim() || `${cleanUsername}@flat.com`,
-      created_at: new Date().toISOString(),
-    };
-
-    const updatedUsers = [...allUsers, newUser];
-    setAllUsers(updatedUsers);
-    localStorage.setItem('heychores_users', JSON.stringify(updatedUsers));
-
-    // Authenticate the new user
-    setCurrentUser(newUser);
-    setActiveGroupId(null);
-    localStorage.setItem('heychores_current_user_id', newUser.id);
-
-    return { success: true };
   };
 
   const logout = async () => {
     if (isSupabaseMode) {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    } else {
-      localStorage.removeItem('heychores_current_user_id');
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {}
     }
+    localStorage.removeItem('heychores_current_user_id');
     setCurrentUser(null);
-    setActiveGroupId(null);
-  };
-
-  const setActiveGroup = (group: Group) => {
-    setActiveGroupId(group.id);
+    setActiveGroupState(null);
+    activeGroupIdRef.current = null;
+    setGroups([]);
+    setMembers([]);
+    setTasks([]);
+    setAwayPeriods([]);
   };
 
   /**
-   * Completes a task turn atomically.
+   * Completes a task turn atomically in centralized database
    */
   const markTaskCompleted = async (
     taskId: string,
@@ -331,25 +331,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to complete a chore.' };
     }
 
-    const targetTask = allTasksStore.find((t) => t.id === taskId);
-    if (!targetTask || !targetTask.state || !targetTask.rotation || targetTask.rotation.length === 0) {
-      return { success: false, message: 'Task not found.' };
-    }
-
-    const isCurrentAssignee = targetTask.state.current_assignee_id === currentUser.id;
-    const isAdmin = activeGroup?.admin_user_id === currentUser.id;
-
-    if (!isCurrentAssignee && !isAdmin) {
-      return {
-        success: false,
-        message: 'Only the assigned roommate or flat admin can mark this chore complete.',
-      };
-    }
-
-    const wasAdminOverride = !isCurrentAssignee && isAdmin;
-    const now = new Date();
-    const completedAt = now.toISOString();
-
     // Trigger celebration confetti
     try {
       confetti({
@@ -358,81 +339,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         origin: { y: 0.7 },
         colors: ['#0d9488', '#14b8a6', '#f59e0b', '#38bdf8', '#8b5cf6'],
       });
-    } catch {
-      // ignore
+    } catch {}
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete',
+          taskId,
+          userId: currentUser.id,
+          notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        return { success: false, message: data.message || 'Failed to complete chore.' };
+      }
+
+      await fetchServerData();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error completing chore.' };
     }
-
-    // Advance rotation logic
-    const advanceResult = advanceTaskRotation({
-      rotation: targetTask.rotation,
-      currentState: targetTask.state,
-      awayPeriods,
-      completedAt: now,
-      intervalType: targetTask.interval_type,
-      intervalValue: targetTask.interval_value,
-      completedByUserId: currentUser.id,
-      activeExchange: targetTask.active_exchange,
-    });
-
-    const nextAssigneeProfile = members.find((m) => m.user_id === advanceResult.nextAssigneeId)?.profile ||
-      allUsers.find((p) => p.id === advanceResult.nextAssigneeId) || {
-        id: advanceResult.nextAssigneeId,
-        name: 'Roommate',
-      };
-
-    const completionNote = wasAdminOverride
-      ? `[Admin override by ${currentUser.name} on behalf of assigned roommate] ${notes || ''}`.trim()
-      : notes;
-
-    const newCompletion: TaskCompletion = {
-      id: `comp-${Date.now()}`,
-      task_id: taskId,
-      user_id: currentUser.id,
-      completed_at: completedAt,
-      was_exchanged: Boolean(targetTask.active_exchange),
-      original_assignee_id: targetTask.active_exchange ? targetTask.active_exchange.original_assignee_id : null,
-      notes: completionNote,
-      profile: currentUser,
-    };
-
-    const newActivity: TaskActivity = {
-      id: `act-${Date.now()}`,
-      task_id: taskId,
-      actor_id: currentUser.id,
-      action: wasAdminOverride ? 'admin_override' : 'completed',
-      details: wasAdminOverride
-        ? `${currentUser.name} marked completed as Admin on behalf of ${targetTask.current_assignee?.name || 'assignee'}`
-        : `${currentUser.name} completed turn`,
-      created_at: completedAt,
-      actor: currentUser,
-    };
-
-    const updatedTask: Task = {
-      ...targetTask,
-      state: {
-        ...targetTask.state,
-        current_rotation_position: advanceResult.nextPosition,
-        current_assignee_id: advanceResult.nextAssigneeId,
-        last_completed_at: completedAt,
-        last_completed_by_id: currentUser.id,
-        next_due_at: advanceResult.nextDueAt,
-        next_reminder_at: advanceResult.nextReminderAt,
-        updated_at: completedAt,
-      },
-      current_assignee: nextAssigneeProfile,
-      active_exchange: null,
-      recent_completions: [newCompletion, ...(targetTask.recent_completions || [])],
-      activities: [newActivity, ...(targetTask.activities || [])],
-    };
-
-    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
-    saveAllStores(newAllTasks);
-
-    return { success: true };
   };
 
   /**
-   * Temporarily exchanges turn with another roommate.
+   * Exchanges turn with another roommate
    */
   const exchangeTurn = async (
     taskId: string,
@@ -443,123 +377,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to exchange turns.' };
     }
 
-    const targetTask = allTasksStore.find((t) => t.id === taskId);
-    if (!targetTask || !targetTask.state) {
-      return { success: false, message: 'Task not found.' };
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'exchange',
+          taskId,
+          userId: currentUser.id,
+          replacementUserId,
+          note,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        return { success: false, message: data.message || 'Failed to exchange turn.' };
+      }
+
+      await fetchServerData();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error exchanging chore.' };
     }
-
-    const isCurrentAssignee = targetTask.state.current_assignee_id === currentUser.id;
-    const isAdmin = activeGroup?.admin_user_id === currentUser.id;
-
-    if (!isCurrentAssignee && !isAdmin) {
-      return {
-        success: false,
-        message: 'Only the assigned roommate can pass or exchange their chore.',
-      };
-    }
-
-    // CHECK: Is the replacement user marked away?
-    const replacementMember = members.find((m) => m.user_id === replacementUserId);
-    if (replacementMember?.is_away) {
-      return {
-        success: false,
-        message: 'Cannot exchange with a roommate who is currently marked as away on vacation.',
-      };
-    }
-
-    const replacementProfile = replacementMember?.profile || allUsers.find((p) => p.id === replacementUserId);
-    if (!replacementProfile) {
-      return { success: false, message: 'Replacement roommate not found.' };
-    }
-
-    const exchange = {
-      id: `ex-${Date.now()}`,
-      task_id: taskId,
-      occurrence_id: `occ-${Date.now()}`,
-      original_assignee_id: targetTask.state.current_assignee_id,
-      replacement_assignee_id: replacementUserId,
-      note,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      original_assignee: targetTask.current_assignee || currentUser,
-      replacement_assignee: replacementProfile,
-    };
-
-    const newActivity: TaskActivity = {
-      id: `act-${Date.now()}`,
-      task_id: taskId,
-      actor_id: currentUser.id,
-      action: 'exchanged',
-      details: `${currentUser.name} passed turn to ${replacementProfile.name}${note ? `: "${note}"` : ''}`,
-      created_at: new Date().toISOString(),
-      actor: currentUser,
-    };
-
-    const updatedTask: Task = {
-      ...targetTask,
-      state: {
-        ...targetTask.state,
-        current_assignee_id: replacementUserId,
-        updated_at: new Date().toISOString(),
-      },
-      current_assignee: replacementProfile,
-      active_exchange: exchange,
-      activities: [newActivity, ...(targetTask.activities || [])],
-    };
-
-    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
-    saveAllStores(newAllTasks);
-
-    return { success: true };
   };
 
   /**
-   * Sets away period for a roommate.
+   * Sets away period for a roommate
    */
   const setMemberAway = async (userId: string, startAt: string, endAt: string): Promise<boolean> => {
     if (!activeGroup) return false;
 
-    const newPeriod: AwayPeriod = {
-      id: `away-${Date.now()}`,
-      group_id: activeGroup.id,
-      user_id: userId,
-      start_at: startAt,
-      end_at: endAt,
-      created_at: new Date().toISOString(),
-    };
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'set_away',
+          groupId: activeGroup.id,
+          userId,
+          startAt,
+          endAt,
+        }),
+      });
 
-    const newAllAway = [...allAwayStore, newPeriod];
-    const newAllMembers = allMembersStore.map((m) => {
-      if (m.group_id === activeGroup.id && m.user_id === userId) {
-        return { ...m, is_away: true, away_period: newPeriod };
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
       }
-      return m;
-    });
-
-    saveAllStores(undefined, newAllMembers, newAllAway);
-    return true;
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   /**
-   * Clears an away period.
+   * Clears an away period
    */
   const clearMemberAway = async (awayId: string): Promise<boolean> => {
-    const target = allAwayStore.find((a) => a.id === awayId);
-    const newAllAway = allAwayStore.filter((a) => a.id !== awayId);
-    const newAllMembers = allMembersStore.map((m) => {
-      if (target && m.group_id === target.group_id && m.user_id === target.user_id) {
-        return { ...m, is_away: false, away_period: null };
-      }
-      return m;
-    });
+    if (!activeGroup) return false;
+    const target = awayPeriods.find((a) => a.id === awayId);
+    const targetUserId = target?.user_id || currentUser?.id;
+    if (!targetUserId) return false;
 
-    saveAllStores(undefined, newAllMembers, newAllAway);
-    return true;
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'clear_away',
+          groupId: activeGroup.id,
+          userId: targetUserId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   /**
    * DYNAMIC TASK CREATION:
-   * Anybody in the flat can create a task and set the rotation order among roommates!
+   * Anyone in the flat can create a chore and assign roommate rotation order!
    */
   const createTask = async (data: {
     name: string;
@@ -572,329 +478,224 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be part of a flat to create chores.' };
     }
 
-    if (!data.name.trim()) {
-      return { success: false, message: 'Chore name cannot be empty.' };
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          groupId: activeGroup.id,
+          userId: currentUser.id,
+          data,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!resData.success) {
+        return { success: false, message: resData.message || 'Failed to create chore.' };
+      }
+
+      await fetchServerData();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error creating chore.' };
     }
-
-    if (!data.rotationUserIds || data.rotationUserIds.length === 0) {
-      return { success: false, message: 'Please select at least one roommate for the rotation.' };
-    }
-
-    const taskId = `task-${Date.now()}`;
-    const initialAssigneeId = data.rotationUserIds[0];
-    const initialAssignee = members.find((m) => m.user_id === initialAssigneeId)?.profile ||
-      allUsers.find((p) => p.id === initialAssigneeId) || currentUser;
-
-    const rotation = data.rotationUserIds.map((userId, idx) => ({
-      id: `rot-${taskId}-${idx}`,
-      task_id: taskId,
-      user_id: userId,
-      position: idx,
-      profile: members.find((m) => m.user_id === userId)?.profile || allUsers.find((p) => p.id === userId),
-    }));
-
-    const nextDue = calculateNextDueDate(new Date(), data.intervalType, data.intervalValue);
-
-    const newActivity: TaskActivity = {
-      id: `act-${Date.now()}`,
-      task_id: taskId,
-      actor_id: currentUser.id,
-      action: 'rotation_changed',
-      details: `${currentUser.name} created chore "${data.name}" with ${rotation.length} flatmates in rotation`,
-      created_at: new Date().toISOString(),
-      actor: currentUser,
-    };
-
-    const newTask: Task = {
-      id: taskId,
-      group_id: activeGroup.id,
-      name: data.name.trim(),
-      description: data.description?.trim() || '',
-      interval_type: data.intervalType,
-      interval_value: data.intervalValue,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      rotation,
-      state: {
-        task_id: taskId,
-        current_rotation_position: 0,
-        current_assignee_id: initialAssigneeId,
-        next_due_at: nextDue.toISOString(),
-        next_reminder_at: nextDue.toISOString(),
-        is_paused: false,
-        updated_at: new Date().toISOString(),
-      },
-      current_assignee: initialAssignee,
-      active_exchange: null,
-      recent_completions: [],
-      activities: [newActivity],
-    };
-
-    const newAllTasks = [newTask, ...allTasksStore];
-    saveAllStores(newAllTasks);
-    return { success: true };
   };
 
-  /**
-   * Updates task.
-   */
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
-    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
-    saveAllStores(newAllTasks);
     return true;
   };
 
-  /**
-   * Toggles pause/resume on a task.
-   */
   const togglePauseTask = async (taskId: string): Promise<boolean> => {
-    const target = allTasksStore.find((t) => t.id === taskId);
-    if (!target || !target.state || !currentUser) return false;
-
-    const isNowPaused = !target.state.is_paused;
-    const newActivity: TaskActivity = {
-      id: `act-${Date.now()}`,
-      task_id: taskId,
-      actor_id: currentUser.id,
-      action: isNowPaused ? 'paused' : 'resumed',
-      details: `${currentUser.name} ${isNowPaused ? 'paused' : 'resumed'} task`,
-      created_at: new Date().toISOString(),
-      actor: currentUser,
-    };
-
-    const updatedTask: Task = {
-      ...target,
-      state: {
-        ...target.state,
-        is_paused: isNowPaused,
-        next_reminder_at: isNowPaused ? null : calculateNextReminder(target.state.next_due_at, null, new Date()).toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      activities: [newActivity, ...(target.activities || [])],
-    };
-
-    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
-    saveAllStores(newAllTasks);
-    return true;
+    if (!currentUser) return false;
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_pause',
+          taskId,
+          userId: currentUser.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
-  /**
-   * Deletes task.
-   */
   const deleteTask = async (taskId: string): Promise<boolean> => {
-    const newAllTasks = allTasksStore.filter((t) => t.id !== taskId);
-    saveAllStores(newAllTasks);
-    return true;
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', taskId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
-  /**
-   * Reorders task rotation members.
-   */
   const reorderTaskRotation = async (taskId: string, userIdsInOrder: string[]): Promise<boolean> => {
-    const target = allTasksStore.find((t) => t.id === taskId);
-    if (!target || !target.rotation || !currentUser) return false;
-
-    const newRotation = userIdsInOrder.map((userId, idx) => {
-      const existing = target.rotation?.find((r) => r.user_id === userId);
-      return {
-        id: existing?.id || `rot-${taskId}-${idx}`,
-        task_id: taskId,
-        user_id: userId,
-        position: idx,
-        profile: members.find((m) => m.user_id === userId)?.profile || allUsers.find((p) => p.id === userId),
-      };
-    });
-
-    const currentAssigneePos = newRotation.findIndex((r) => r.user_id === target.state?.current_assignee_id);
-    const newPos = currentAssigneePos >= 0 ? currentAssigneePos : 0;
-
-    const newActivity: TaskActivity = {
-      id: `act-${Date.now()}`,
-      task_id: taskId,
-      actor_id: currentUser.id,
-      action: 'rotation_changed',
-      details: `${currentUser.name} altered rotation order`,
-      created_at: new Date().toISOString(),
-      actor: currentUser,
-    };
-
-    const updatedTask: Task = {
-      ...target,
-      rotation: newRotation,
-      state: target.state
-        ? {
-            ...target.state,
-            current_rotation_position: newPos,
-          }
-        : undefined,
-      activities: [newActivity, ...(target.activities || [])],
-    };
-
-    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
-    saveAllStores(newAllTasks);
-    return true;
+    if (!currentUser) return false;
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reorder',
+          taskId,
+          userId: currentUser.id,
+          userIdsInOrder,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
-  /**
-   * Removes a member from group and updates task rotations.
-   */
   const removeMemberFromGroup = async (userId: string): Promise<boolean> => {
     if (!activeGroup) return false;
-
-    const newAllMembers = allMembersStore.filter(
-      (m) => !(m.group_id === activeGroup.id && m.user_id === userId)
-    );
-
-    const newAllTasks = allTasksStore.map((task) => {
-      if (task.group_id !== activeGroup.id || !task.rotation || !task.state) return task;
-      const hasMember = task.rotation.some((r) => r.user_id === userId);
-      if (!hasMember) return task;
-
-      const { updatedRotation, updatedState } = handleMemberRemovalFromRotation(
-        task.rotation,
-        userId,
-        task.state,
-        awayPeriods
-      );
-
-      const nextAssignee = updatedState?.current_assignee_id
-        ? members.find((m) => m.user_id === updatedState.current_assignee_id)?.profile
-        : task.current_assignee;
-
-      return {
-        ...task,
-        rotation: updatedRotation,
-        state: updatedState ? { ...task.state, ...updatedState } : task.state,
-        current_assignee: nextAssignee || task.current_assignee,
-      };
-    });
-
-    saveAllStores(newAllTasks, newAllMembers);
-    return true;
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'remove',
+          groupId: activeGroup.id,
+          userId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
-  /**
-   * Admin: Transfers admin rights.
-   */
   const transferAdmin = async (newAdminUserId: string): Promise<boolean> => {
     if (!activeGroup) return false;
-
-    const updatedGroup: Group = {
-      ...activeGroup,
-      admin_user_id: newAdminUserId,
-    };
-
-    const newAllGroups = allGroupsStore.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
-    const newAllMembers = allMembersStore.map((m) => {
-      if (m.group_id === activeGroup.id) {
-        return {
-          ...m,
-          role: (m.user_id === newAdminUserId ? 'admin' : m.user_id === activeGroup.admin_user_id ? 'member' : m.role) as any,
-        };
+    try {
+      const res = await fetch('/api/flats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'transfer_admin',
+          groupId: activeGroup.id,
+          newAdminUserId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchServerData();
+        return true;
       }
-      return m;
-    });
-
-    saveAllStores(undefined, newAllMembers, undefined, newAllGroups);
-    return true;
-  };
-
-  /**
-   * Admin: Renames a member.
-   */
-  const renameMember = async (userId: string, newName: string): Promise<boolean> => {
-    const updatedAllMembers = allMembersStore.map((m) => {
-      if (m.user_id === userId) {
-        return {
-          ...m,
-          profile: {
-            ...m.profile,
-            name: newName,
-            id: m.user_id,
-          },
-        };
-      }
-      return m;
-    });
-
-    const updatedAllUsers = allUsers.map((u) => (u.id === userId ? { ...u, name: newName } : u));
-    setAllUsers(updatedAllUsers);
-    localStorage.setItem('heychores_users', JSON.stringify(updatedAllUsers));
-
-    if (currentUser?.id === userId) {
-      setCurrentUser((prev) => (prev ? { ...prev, name: newName } : null));
+      return false;
+    } catch {
+      return false;
     }
-
-    saveAllStores(undefined, updatedAllMembers);
-    return true;
   };
 
-  /**
-   * Admin: Regenerates group invite code.
-   */
+  const renameMember = async (userId: string, newName: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rename',
+          userId,
+          newName,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (currentUser?.id === userId) {
+          setCurrentUser((prev) => (prev ? { ...prev, name: newName } : null));
+        }
+        await fetchServerData();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const regenerateInviteCode = async (): Promise<string> => {
     if (!activeGroup) return '';
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    try {
+      const res = await fetch('/api/flats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'regenerate_code',
+          groupId: activeGroup.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.invite_code) {
+        await fetchServerData();
+        return data.invite_code;
+      }
+      return '';
+    } catch {
+      return '';
     }
-
-    const updatedGroup: Group = {
-      ...activeGroup,
-      invite_code: code,
-    };
-
-    const newAllGroups = allGroupsStore.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
-    saveAllStores(undefined, undefined, undefined, newAllGroups);
-    return code;
   };
 
   /**
-   * Creates a new group.
+   * Creates a new group centrally.
    * Creator becomes admin and member.
    * Flat starts clean with ZERO chores!
    */
   const createGroup = async (name: string, timezone: string = 'Asia/Kolkata'): Promise<Group> => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    const adminId = currentUser?.id || 'admin-1';
+    const res = await fetch('/api/flats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'create',
+        name,
+        adminUserId: adminId,
+        timezone,
+      }),
+    });
+
+    const data = await res.json();
+    if (!data.success || !data.group) {
+      throw new Error(data.message || 'Failed to create flat');
     }
 
-    const adminId = currentUser?.id || 'admin-1';
-    const newGroup: Group = {
-      id: `group-${Date.now()}`,
-      name: name.trim(),
-      invite_code: code,
-      admin_user_id: adminId,
-      timezone,
-      created_at: new Date().toISOString(),
-      member_count: 1,
-    };
-
-    const newMember: GroupMember = {
-      id: `gm-${Date.now()}`,
-      group_id: newGroup.id,
-      user_id: adminId,
-      role: 'admin',
-      joined_at: new Date().toISOString(),
-      profile: currentUser || { id: adminId, name: 'Admin' },
-      is_away: false,
-    };
-
-    const newAllGroups = [...allGroupsStore, newGroup];
-    const newAllMembers = [...allMembersStore, newMember];
-
-    setActiveGroupId(newGroup.id);
-    saveAllStores(undefined, newAllMembers, undefined, newAllGroups);
-
-    return newGroup;
+    activeGroupIdRef.current = data.group.id;
+    await fetchServerData(adminId, data.group.id);
+    return data.group;
   };
 
   /**
-   * JOINS A FLAT:
-   * Adds user to flat membership and sets active group.
+   * JOINS A FLAT CENTRALLY:
+   * Adds user to flat membership in centralized database.
+   * Works across all devices, browsers, and sessions!
    */
   const joinGroupByCode = async (
     code: string
@@ -908,54 +709,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Please enter a valid invite code.' };
     }
 
-    // Look for group in all groups store
-    let foundGroup = allGroupsStore.find((g) => g.invite_code.toUpperCase() === cleanCode);
-    if (!foundGroup && cleanCode === MOCK_GROUP.invite_code) {
-      foundGroup = MOCK_GROUP;
-    }
+    try {
+      const res = await fetch('/api/flats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'join',
+          code: cleanCode,
+          userId: currentUser.id,
+          userProfile: currentUser,
+        }),
+      });
 
-    if (!foundGroup) {
+      const data = await res.json();
+      if (!data.success || !data.group) {
+        return {
+          success: false,
+          message: data.message || `No flat found with code "${cleanCode}". Please verify with your flatmate.`,
+        };
+      }
+
+      activeGroupIdRef.current = data.group.id;
+      await fetchServerData(currentUser.id, data.group.id);
+
       return {
-        success: false,
-        message: `No flat found with code "${cleanCode}". Please verify with your flatmate.`,
+        success: true,
+        message: data.message || `Joined "${data.group.name}" successfully!`,
       };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error joining flat.' };
     }
+  };
 
-    // Check if user is already a member
-    const isAlreadyMember = allMembersStore.some(
-      (m) => m.group_id === foundGroup!.id && m.user_id === currentUser.id
-    );
+  /**
+   * Deletes a flat permanently (Admin only)
+   */
+  const deleteGroup = async (groupId: string): Promise<{ success: boolean; message?: string }> => {
+    if (!currentUser) return { success: false, message: 'You must be logged in.' };
 
-    if (isAlreadyMember) {
-      setActiveGroupId(foundGroup.id);
-      return { success: true, message: `You are already a member of "${foundGroup.name}".` };
+    try {
+      const res = await fetch('/api/flats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete',
+          groupId,
+          userId: currentUser.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        return { success: false, message: data.message || 'Failed to delete flat.' };
+      }
+
+      if (activeGroupIdRef.current === groupId) {
+        activeGroupIdRef.current = null;
+        setActiveGroupState(null);
+      }
+
+      await fetchServerData();
+      return { success: true, message: data.message || 'Flat deleted successfully.' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error deleting flat.' };
     }
+  };
 
-    // Add user as a member
-    const newMember: GroupMember = {
-      id: `gm-${Date.now()}`,
-      group_id: foundGroup.id,
-      user_id: currentUser.id,
-      role: 'member',
-      joined_at: new Date().toISOString(),
-      profile: currentUser,
-      is_away: false,
-    };
+  /**
+   * Leaves a flat
+   */
+  const leaveGroup = async (groupId: string): Promise<{ success: boolean; message?: string }> => {
+    if (!currentUser) return { success: false, message: 'You must be logged in.' };
 
-    const updatedAllMembers = [...allMembersStore, newMember];
-    const updatedGroup: Group = {
-      ...foundGroup,
-      member_count: (foundGroup.member_count || 1) + 1,
-    };
+    try {
+      const res = await fetch('/api/flats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'leave',
+          groupId,
+          userId: currentUser.id,
+        }),
+      });
 
-    const updatedAllGroups = allGroupsStore.some((g) => g.id === foundGroup!.id)
-      ? allGroupsStore.map((g) => (g.id === foundGroup!.id ? updatedGroup : g))
-      : [...allGroupsStore, updatedGroup];
+      const data = await res.json();
+      if (!data.success) {
+        return { success: false, message: data.message || 'Failed to leave flat.' };
+      }
 
-    setActiveGroupId(foundGroup.id);
-    saveAllStores(undefined, updatedAllMembers, undefined, updatedAllGroups);
+      if (activeGroupIdRef.current === groupId) {
+        activeGroupIdRef.current = null;
+        setActiveGroupState(null);
+      }
 
-    return { success: true, message: `Joined "${foundGroup.name}" successfully!` };
+      await fetchServerData();
+      return { success: true, message: data.message || 'You left the flat.' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Server error leaving flat.' };
+    }
   };
 
   const markNotificationRead = (id: string) => {
@@ -972,7 +823,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         isAuthenticated: Boolean(currentUser),
         allUsers,
-        groups: userGroups,
+        groups,
         activeGroup,
         members,
         tasks,
@@ -999,6 +850,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         regenerateInviteCode,
         createGroup,
         joinGroupByCode,
+        deleteGroup,
+        leaveGroup,
         markNotificationRead,
         clearAllNotifications,
       }}
