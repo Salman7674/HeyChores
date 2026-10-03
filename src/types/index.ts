@@ -5,9 +5,11 @@ export type UserRole = 'admin' | 'member';
 export interface Profile {
   id: string;
   name: string;
+  username?: string;
   avatar_url?: string | null;
   created_at?: string;
   email?: string;
+  password?: string;
 }
 
 export interface Group {

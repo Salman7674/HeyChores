@@ -23,7 +23,6 @@ interface NavbarProps {
 export function Navbar({ onOpenAwayModal, onOpenNotificationModal }: NavbarProps) {
   const {
     currentUser,
-    switchMockUser,
     activeGroup,
     logout,
     members,
@@ -107,34 +106,8 @@ export function Navbar({ onOpenAwayModal, onOpenNotificationModal }: NavbarProps
                 <span>Reminder Settings</span>
               </button>
 
-              {/* Switch Flatmate in local preview */}
-              <div className="my-1 pt-1 border-t border-slate-800">
-                <span className="px-3 text-[10px] uppercase tracking-wider font-semibold text-slate-500 block mb-1">
-                  Switch Flatmate (Preview)
-                </span>
-                <div className="space-y-0.5">
-                  {MOCK_PROFILES.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        switchMockUser(p.id);
-                        setShowMenu(false);
-                      }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs flex items-center justify-between ${
-                        currentUser.id === p.id
-                          ? 'bg-teal-500/10 text-teal-300 font-semibold'
-                          : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
-                      }`}
-                    >
-                      <span>{p.name}</span>
-                      {currentUser.id === p.id && <Check className="w-3 h-3 text-teal-400" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Sign out */}
-              <div className="pt-1 border-t border-slate-800">
+              <div className="pt-2 border-t border-slate-800">
                 <button
                   onClick={() => {
                     setShowMenu(false);

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/context/app-context';
-import { Users, X } from 'lucide-react';
+import { Users, X, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface JoinGroupModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ export function JoinGroupModal({ isOpen, onClose }: JoinGroupModalProps) {
   const { joinGroupByCode } = useApp();
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -22,14 +23,18 @@ export function JoinGroupModal({ isOpen, onClose }: JoinGroupModalProps) {
     if (!code.trim()) return;
 
     setError('');
+    setSuccessMsg('');
     setSubmitting(true);
-    const success = await joinGroupByCode(code.trim());
+    const result = await joinGroupByCode(code.trim());
     setSubmitting(false);
 
-    if (success) {
-      onClose();
+    if (result.success) {
+      setSuccessMsg(result.message || 'Joined flat successfully!');
+      setTimeout(() => {
+        onClose();
+      }, 1200);
     } else {
-      setError('Invalid invite code. Please check and try again.');
+      setError(result.message || 'Invalid invite code. Please check and try again.');
     }
   };
 
@@ -72,7 +77,19 @@ export function JoinGroupModal({ isOpen, onClose }: JoinGroupModalProps) {
             />
           </div>
 
-          {error && <p className="text-xs text-rose-400 text-center">{error}</p>}
+          {error && (
+            <div className="p-3 bg-rose-500/20 border border-rose-500/30 rounded-2xl text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-300 text-xs flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

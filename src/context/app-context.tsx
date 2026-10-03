@@ -31,6 +31,7 @@ import confetti from 'canvas-confetti';
 interface AppContextType {
   currentUser: Profile | null;
   isAuthenticated: boolean;
+  allUsers: Profile[];
   groups: Group[];
   activeGroup: Group | null;
   members: GroupMember[];
@@ -39,10 +40,10 @@ interface AppContextType {
   notifications: InAppNotification[];
   isSupabaseMode: boolean;
   isLoading: boolean;
-  loginAs: (profile: Profile) => void;
+  loginWithCredentials: (usernameOrEmail: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  registerUser: (name: string, username: string, password: string, email?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   setActiveGroup: (group: Group) => void;
-  switchMockUser: (userId: string) => void;
   markTaskCompleted: (taskId: string, notes?: string) => Promise<{ success: boolean; message?: string }>;
   exchangeTurn: (taskId: string, replacementUserId: string, note?: string) => Promise<{ success: boolean; message?: string }>;
   setMemberAway: (userId: string, startAt: string, endAt: string) => Promise<boolean>;
@@ -53,7 +54,7 @@ interface AppContextType {
     intervalType: IntervalType;
     intervalValue: number;
     rotationUserIds: string[];
-  }) => Promise<boolean>;
+  }) => Promise<{ success: boolean; message?: string }>;
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<boolean>;
   togglePauseTask: (taskId: string) => Promise<boolean>;
   deleteTask: (taskId: string) => Promise<boolean>;
@@ -63,7 +64,7 @@ interface AppContextType {
   renameMember: (userId: string, newName: string) => Promise<boolean>;
   regenerateInviteCode: () => Promise<string>;
   createGroup: (name: string, timezone?: string) => Promise<Group>;
-  joinGroupByCode: (code: string) => Promise<boolean>;
+  joinGroupByCode: (code: string) => Promise<{ success: boolean; message?: string }>;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
 }
@@ -72,6 +73,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSupabaseMode] = useState<boolean>(() => isSupabaseConfigured());
+  const [allUsers, setAllUsers] = useState<Profile[]>(MOCK_PROFILES);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [groups, setGroups] = useState<Group[]>([MOCK_GROUP]);
   const [activeGroup, setActiveGroup] = useState<Group | null>(MOCK_GROUP);
@@ -92,6 +94,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser({
               id: user.id,
               name: user.user_metadata?.name || user.email?.split('@')[0] || 'Roommate',
+              username: user.user_metadata?.username || user.email?.split('@')[0],
               email: user.email,
               avatar_url: user.user_metadata?.avatar_url,
             });
@@ -100,16 +103,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.error('Supabase user check error:', err);
         }
       } else {
-        // In local mode, check localStorage for logged-in user or initialize with Ahmed
+        // In local mode, check localStorage for registered accounts and logged-in user
         try {
+          let usersList = MOCK_PROFILES;
+          const savedUsers = localStorage.getItem('heychores_users');
+          if (savedUsers) {
+            usersList = JSON.parse(savedUsers);
+            setAllUsers(usersList);
+          } else {
+            localStorage.setItem('heychores_users', JSON.stringify(MOCK_PROFILES));
+          }
+
           const savedUserId = localStorage.getItem('heychores_current_user_id');
           if (savedUserId) {
-            const found = MOCK_PROFILES.find((p) => p.id === savedUserId);
+            const found = usersList.find((p) => p.id === savedUserId);
             if (found) setCurrentUser(found);
-            else setCurrentUser(MOCK_PROFILES[0]);
+            else setCurrentUser(usersList[0]);
           } else {
-            // Default logged in as Ahmed
-            setCurrentUser(MOCK_PROFILES[0]);
+            // Default logged in as Ahmed for instant initial visit
+            setCurrentUser(usersList[0]);
+            localStorage.setItem('heychores_current_user_id', usersList[0].id);
           }
 
           const savedTasks = localStorage.getItem('heychores_tasks');
@@ -159,9 +172,108 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginAs = (profile: Profile) => {
-    setCurrentUser(profile);
-    localStorage.setItem('heychores_current_user_id', profile.id);
+  /**
+   * Log in using Username (or Email) and Password
+   */
+  const loginWithCredentials = async (
+    usernameOrEmail: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    const term = usernameOrEmail.trim().toLowerCase();
+
+    if (!term || !password.trim()) {
+      return { success: false, message: 'Please enter both username and password.' };
+    }
+
+    if (isSupabaseMode) {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: term,
+          password,
+        });
+        if (error) {
+          return { success: false, message: error.message };
+        }
+        if (data.user) {
+          const profile: Profile = {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || term,
+            username: term,
+            email: data.user.email,
+          };
+          setCurrentUser(profile);
+          return { success: true };
+        }
+      } catch (err: any) {
+        return { success: false, message: err.message || 'Login failed' };
+      }
+    }
+
+    // Local / Offline authentication
+    const user = allUsers.find(
+      (u) =>
+        (u.username && u.username.toLowerCase() === term) ||
+        (u.email && u.email.toLowerCase() === term) ||
+        u.name.toLowerCase() === term
+    );
+
+    if (!user) {
+      return { success: false, message: 'No account found with that username or email.' };
+    }
+
+    // Validate password (default to password123 if not set)
+    const expectedPassword = user.password || 'password123';
+    if (password !== expectedPassword) {
+      return { success: false, message: 'Incorrect password. (Default is password123)' };
+    }
+
+    setCurrentUser(user);
+    localStorage.setItem('heychores_current_user_id', user.id);
+    return { success: true };
+  };
+
+  /**
+   * Register a new account with Username & Password
+   */
+  const registerUser = async (
+    name: string,
+    username: string,
+    password: string,
+    email?: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanName = name.trim();
+
+    if (!cleanName || !cleanUsername || !password.trim()) {
+      return { success: false, message: 'Name, username, and password are required.' };
+    }
+
+    // Check if username taken
+    const existing = allUsers.find(
+      (u) => u.username && u.username.toLowerCase() === cleanUsername
+    );
+    if (existing) {
+      return { success: false, message: `Username "@${cleanUsername}" is already taken. Please choose another.` };
+    }
+
+    const newUser: Profile = {
+      id: `user-${Date.now()}`,
+      name: cleanName,
+      username: cleanUsername,
+      password: password.trim(),
+      email: email?.trim() || `${cleanUsername}@flat.com`,
+      created_at: new Date().toISOString(),
+    };
+
+    const updatedUsers = [...allUsers, newUser];
+    setAllUsers(updatedUsers);
+    localStorage.setItem('heychores_users', JSON.stringify(updatedUsers));
+
+    setCurrentUser(newUser);
+    localStorage.setItem('heychores_current_user_id', newUser.id);
+
+    return { success: true };
   };
 
   const logout = async () => {
@@ -172,13 +284,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('heychores_current_user_id');
     }
     setCurrentUser(null);
-  };
-
-  const switchMockUser = (userId: string) => {
-    const found = MOCK_PROFILES.find((p) => p.id === userId);
-    if (found) {
-      loginAs(found);
-    }
   };
 
   /**
@@ -238,7 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     const nextAssigneeProfile = members.find((m) => m.user_id === advanceResult.nextAssigneeId)?.profile ||
-      MOCK_PROFILES.find((p) => p.id === advanceResult.nextAssigneeId) || {
+      allUsers.find((p) => p.id === advanceResult.nextAssigneeId) || {
         id: advanceResult.nextAssigneeId,
         name: 'Roommate',
       };
@@ -283,7 +388,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updated_at: completedAt,
       },
       current_assignee: nextAssigneeProfile,
-      active_exchange: null, // Clear exchange after completion
+      active_exchange: null,
       recent_completions: [newCompletion, ...(targetTask.recent_completions || [])],
       activities: [newActivity, ...(targetTask.activities || [])],
     };
@@ -334,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
-    const replacementProfile = replacementMember?.profile || MOCK_PROFILES.find((p) => p.id === replacementUserId);
+    const replacementProfile = replacementMember?.profile || allUsers.find((p) => p.id === replacementUserId);
     if (!replacementProfile) {
       return { success: false, message: 'Replacement roommate not found.' };
     }
@@ -423,7 +528,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Admin: Creates a new task.
+   * DYNAMIC TASK CREATION:
+   * Anybody in the flat can create a task and set the rotation order among roommates!
    */
   const createTask = async (data: {
     name: string;
@@ -431,19 +537,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     intervalType: IntervalType;
     intervalValue: number;
     rotationUserIds: string[];
-  }): Promise<boolean> => {
-    if (!activeGroup || !currentUser) return false;
+  }): Promise<{ success: boolean; message?: string }> => {
+    if (!activeGroup || !currentUser) {
+      return { success: false, message: 'You must be logged in and part of a flat to create chores.' };
+    }
+
+    if (!data.name.trim()) {
+      return { success: false, message: 'Chore name cannot be empty.' };
+    }
+
+    if (!data.rotationUserIds || data.rotationUserIds.length === 0) {
+      return { success: false, message: 'Please select at least one roommate for the rotation.' };
+    }
 
     const taskId = `task-${Date.now()}`;
-    const initialAssigneeId = data.rotationUserIds[0] || currentUser.id;
-    const initialAssignee = members.find((m) => m.user_id === initialAssigneeId)?.profile || currentUser;
+    const initialAssigneeId = data.rotationUserIds[0];
+    const initialAssignee = members.find((m) => m.user_id === initialAssigneeId)?.profile ||
+      allUsers.find((p) => p.id === initialAssigneeId) || currentUser;
 
     const rotation = data.rotationUserIds.map((userId, idx) => ({
       id: `rot-${taskId}-${idx}`,
       task_id: taskId,
       user_id: userId,
       position: idx,
-      profile: members.find((m) => m.user_id === userId)?.profile,
+      profile: members.find((m) => m.user_id === userId)?.profile || allUsers.find((p) => p.id === userId),
     }));
 
     const nextDue = calculateNextDueDate(new Date(), data.intervalType, data.intervalValue);
@@ -453,7 +570,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       task_id: taskId,
       actor_id: currentUser.id,
       action: 'rotation_changed',
-      details: `${currentUser.name} created task with ${rotation.length} roommates`,
+      details: `${currentUser.name} created chore "${data.name}" with ${rotation.length} flatmates in rotation`,
       created_at: new Date().toISOString(),
       actor: currentUser,
     };
@@ -461,8 +578,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newTask: Task = {
       id: taskId,
       group_id: activeGroup.id,
-      name: data.name,
-      description: data.description || '',
+      name: data.name.trim(),
+      description: data.description?.trim() || '',
       interval_type: data.intervalType,
       interval_value: data.intervalValue,
       is_active: true,
@@ -483,13 +600,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity],
     };
 
-    const newTasks = [...tasks, newTask];
+    const newTasks = [newTask, ...tasks];
     persistState(newTasks);
-    return true;
+    return { success: true };
   };
 
   /**
-   * Admin: Updates task.
+   * Updates task.
    */
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
     const newTasks = tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
@@ -498,7 +615,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Admin: Toggles pause/resume on a task.
+   * Toggles pause/resume on a task.
    */
   const togglePauseTask = async (taskId: string): Promise<boolean> => {
     const target = tasks.find((t) => t.id === taskId);
@@ -532,7 +649,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Admin: Deletes task.
+   * Deletes task.
    */
   const deleteTask = async (taskId: string): Promise<boolean> => {
     const newTasks = tasks.filter((t) => t.id !== taskId);
@@ -541,7 +658,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Admin: Reorders task rotation members.
+   * Reorders task rotation members.
    * Records history of rotation alteration!
    */
   const reorderTaskRotation = async (taskId: string, userIdsInOrder: string[]): Promise<boolean> => {
@@ -555,7 +672,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         task_id: taskId,
         user_id: userId,
         position: idx,
-        profile: members.find((m) => m.user_id === userId)?.profile,
+        profile: members.find((m) => m.user_id === userId)?.profile || allUsers.find((p) => p.id === userId),
       };
     });
 
@@ -590,7 +707,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Admin: Removes a member from group and updates task rotations.
+   * Removes a member from group and updates task rotations.
    */
   const removeMemberFromGroup = async (userId: string): Promise<boolean> => {
     const newMembers = members.filter((m) => m.user_id !== userId);
@@ -736,33 +853,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Joins a group by invite code.
+   * JOINS A FLAT:
+   * Fixed and fully dynamic! Finds flat by code, adds user as member, updates flatmates list and active group.
    */
-  const joinGroupByCode = async (code: string): Promise<boolean> => {
-    if (!currentUser) return false;
+  const joinGroupByCode = async (
+    code: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    if (!currentUser) {
+      return { success: false, message: 'Please log in to join a flat.' };
+    }
+
     const cleanCode = code.trim().toUpperCase();
-    const foundGroup = groups.find((g) => g.invite_code === cleanCode);
+    if (!cleanCode) {
+      return { success: false, message: 'Please enter a valid invite code.' };
+    }
+
+    // Look for group in current groups or default mock group
+    let foundGroup = groups.find((g) => g.invite_code.toUpperCase() === cleanCode);
+    if (!foundGroup && cleanCode === MOCK_GROUP.invite_code) {
+      foundGroup = MOCK_GROUP;
+    }
 
     if (!foundGroup) {
-      return false;
-    }
-
-    const isAlreadyMember = members.some((m) => m.group_id === foundGroup.id && m.user_id === currentUser.id);
-    if (!isAlreadyMember) {
-      const newMember: GroupMember = {
-        id: `gm-${Date.now()}`,
-        group_id: foundGroup.id,
-        user_id: currentUser.id,
-        role: 'member',
-        joined_at: new Date().toISOString(),
-        profile: currentUser,
-        is_away: false,
+      return {
+        success: false,
+        message: `No flat found with code "${cleanCode}". Please verify with your flatmate.`,
       };
-      setMembers((prev) => [...prev, newMember]);
     }
 
-    setActiveGroup(foundGroup);
-    return true;
+    // Check if user is already a member
+    const isAlreadyMember = members.some(
+      (m) => m.group_id === foundGroup!.id && m.user_id === currentUser.id
+    );
+
+    if (isAlreadyMember) {
+      setActiveGroup(foundGroup);
+      return { success: true, message: `You are already a member of "${foundGroup.name}".` };
+    }
+
+    // Add user as a member
+    const newMember: GroupMember = {
+      id: `gm-${Date.now()}`,
+      group_id: foundGroup.id,
+      user_id: currentUser.id,
+      role: 'member',
+      joined_at: new Date().toISOString(),
+      profile: currentUser,
+      is_away: false,
+    };
+
+    const updatedMembers = [...members, newMember];
+    const updatedGroup: Group = {
+      ...foundGroup,
+      member_count: (foundGroup.member_count || members.length) + 1,
+    };
+
+    const updatedGroups = groups.some((g) => g.id === foundGroup!.id)
+      ? groups.map((g) => (g.id === foundGroup!.id ? updatedGroup : g))
+      : [...groups, updatedGroup];
+
+    setMembers(updatedMembers);
+    setGroups(updatedGroups);
+    setActiveGroup(updatedGroup);
+
+    persistState(undefined, updatedMembers, undefined, updatedGroups);
+
+    return { success: true, message: `Joined "${foundGroup.name}" successfully!` };
   };
 
   const markNotificationRead = (id: string) => {
@@ -778,6 +934,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         isAuthenticated: Boolean(currentUser),
+        allUsers,
         groups,
         activeGroup,
         members,
@@ -786,10 +943,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         notifications,
         isSupabaseMode,
         isLoading,
-        loginAs,
+        loginWithCredentials,
+        registerUser,
         logout,
         setActiveGroup,
-        switchMockUser,
         markTaskCompleted,
         exchangeTurn,
         setMemberAway,

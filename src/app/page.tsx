@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/context/app-context';
-import { Task, Profile } from '@/types';
-import { MOCK_PROFILES } from '@/lib/mock-data';
+import { Task } from '@/types';
 import { Navbar } from '@/components/navbar';
 import { MembersList } from '@/components/members-list';
 import { CreateTaskModal } from '@/components/modals/create-task-modal';
@@ -22,20 +21,22 @@ import {
   Users,
   Plus,
   ChevronRight,
-  Plane,
   AlertCircle,
   Home,
-  LogOut,
   User,
+  Lock,
+  ArrowRight,
+  KeyRound,
 } from 'lucide-react';
-import { formatDistanceToNow, isPast, parseISO, isToday, format } from 'date-fns';
+import { isPast, parseISO, isToday, format } from 'date-fns';
 
 type TabView = 'chores' | 'roommates' | 'admin';
 
 export default function MobileDashboardPage() {
   const {
     currentUser,
-    loginAs,
+    loginWithCredentials,
+    registerUser,
     activeGroup,
     tasks,
     markTaskCompleted,
@@ -43,6 +44,16 @@ export default function MobileDashboardPage() {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<TabView>('chores');
+
+  // Auth Form State (when logged out)
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupName, setSignupName] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Modals
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -55,53 +66,192 @@ export default function MobileDashboardPage() {
   const [selectedTaskForExchange, setSelectedTaskForExchange] = useState<Task | null>(null);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
-  // 1. If not logged in, show clean authentication screen
+  // Handle Login with Username & Password
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    const result = await loginWithCredentials(loginUsername, loginPassword);
+    setAuthLoading(false);
+    if (!result.success) {
+      setAuthError(result.message || 'Login failed');
+    }
+  };
+
+  // Handle Registration
+  const handleSignupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    const result = await registerUser(signupName, signupUsername, signupPassword);
+    setAuthLoading(false);
+    if (!result.success) {
+      setAuthError(result.message || 'Registration failed');
+    }
+  };
+
+  // 1. If not logged in: Show clean mobile login / register form
   if (!isLoading && !currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center px-4 py-8">
-        <div className="max-w-sm w-full mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
+        <div className="max-w-sm w-full mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
           <div className="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center mx-auto mb-4 text-2xl">
             🧹
           </div>
-          <h1 className="text-xl font-bold text-white mb-1">HeyChores</h1>
-          <p className="text-xs text-slate-400 mb-6">
-            Log in to view and complete your flat chores
+          <h1 className="text-xl font-black text-center text-white mb-1">HeyChores</h1>
+          <p className="text-xs text-center text-slate-400 mb-5">
+            Roommate household duty rotation
           </p>
 
-          <div className="space-y-2 text-left">
-            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-              Select Your Profile:
-            </label>
-            {MOCK_PROFILES.map((profile) => (
-              <button
-                key={profile.id}
-                onClick={() => loginAs(profile)}
-                className="w-full p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 hover:border-teal-500/50 flex items-center justify-between transition group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-teal-500/20 text-teal-300 font-bold text-xs flex items-center justify-center">
-                    {profile.name[0]}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white group-hover:text-teal-300 transition">
-                      {profile.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400">{profile.email}</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-teal-400 transition" />
-              </button>
-            ))}
+          {/* Tab: Sign In vs Register */}
+          <div className="flex p-1 bg-slate-800 rounded-2xl mb-4">
+            <button
+              onClick={() => {
+                setAuthMode('signin');
+                setAuthError('');
+              }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                authMode === 'signin' ? 'bg-teal-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setAuthMode('signup');
+                setAuthError('');
+              }}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${
+                authMode === 'signup' ? 'bg-teal-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Create Account
+            </button>
           </div>
 
-          <p className="text-[11px] text-slate-500 mt-6">
-            Permanent rotation turns never advance until marked complete.
-          </p>
+          {authError && (
+            <div className="p-3 bg-rose-500/20 border border-rose-500/30 rounded-2xl text-rose-300 text-xs flex items-center gap-2 mb-4">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {authMode === 'signin' ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Username or Email
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    required
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    placeholder="e.g. ahmed or rahul"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-400"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition disabled:opacity-50 mt-2"
+              >
+                <span>{authLoading ? 'Signing in...' : 'Sign In'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="p-3 bg-slate-800/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 space-y-1 mt-3">
+                <p className="font-semibold text-slate-300">Default Accounts for Testing:</p>
+                <p className="text-slate-400">
+                  Usernames: <span className="text-teal-300 font-mono">ahmed</span>, <span className="text-teal-300 font-mono">rahul</span>, <span className="text-teal-300 font-mono">sameer</span>, <span className="text-teal-300 font-mono">usman</span>
+                </p>
+                <p className="text-slate-400">
+                  Password: <span className="text-teal-300 font-mono">password123</span>
+                </p>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSignupSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  placeholder="e.g. Imran"
+                  className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Username *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={signupUsername}
+                  onChange={(e) => setSignupUsername(e.target.value.toLowerCase().trim())}
+                  placeholder="e.g. imran"
+                  className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-400 lowercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={4}
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="Create a password"
+                  className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-400"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition disabled:opacity-50 mt-2"
+              >
+                <span>{authLoading ? 'Registering...' : 'Create Account'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          )}
         </div>
       </div>
     );
   }
 
+  // 2. Logged In User View
   // Chores assigned to logged-in user
   const myTasks = tasks.filter(
     (t) =>
@@ -246,7 +396,7 @@ export default function MobileDashboardPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Pending Chores ({allPendingTasks.length})</span>
+                  <span>All Pending Chores ({allPendingTasks.length})</span>
                 </h2>
                 <span className="text-[11px] text-slate-500">Tap to see rotation</span>
               </div>
@@ -332,7 +482,7 @@ export default function MobileDashboardPage() {
         {activeTab === 'admin' && (
           <div className="space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Flat Controls
+              Household Actions
             </h2>
 
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 space-y-3">
@@ -341,15 +491,7 @@ export default function MobileDashboardPage() {
                 className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Add New Chore</span>
-              </button>
-
-              <button
-                onClick={() => setIsCreateGroupOpen(true)}
-                className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition"
-              >
-                <Home className="w-3.5 h-3.5" />
-                <span>Create Another Flat</span>
+                <span>Add New Chore (Any Roommate)</span>
               </button>
 
               <button
@@ -358,12 +500,20 @@ export default function MobileDashboardPage() {
               >
                 <span>Join Flat via Code</span>
               </button>
+
+              <button
+                onClick={() => setIsCreateGroupOpen(true)}
+                className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition"
+              >
+                <Home className="w-3.5 h-3.5" />
+                <span>Create New Flat</span>
+              </button>
             </div>
 
             <div className="p-4 bg-slate-900/60 border border-slate-800/80 rounded-3xl text-xs text-slate-400 space-y-1">
-              <p className="font-semibold text-slate-300">Rotation Engine Rule:</p>
+              <p className="font-semibold text-slate-300">Rotation Engine Principle:</p>
               <p className="leading-relaxed">
-                A turn only transfers when the responsible roommate completes it. Overdue chores remain with the same person until done.
+                Turns advance only when completed. Overdue chores remain with the current responsible person until marked complete.
               </p>
             </div>
           </div>
