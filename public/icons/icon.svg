@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="50%" stop-color="#0d9488" />
+      <stop offset="100%" stop-color="#14b8a6" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#grad)" />
+  <g filter="url(#shadow)" transform="translate(100, 100) scale(0.6)">
+    <!-- Broom / Chore Icon -->
+    <path d="M410 70 L340 0 L250 90 L320 160 Z" fill="#f59e0b" stroke="#ffffff" stroke-width="8" stroke-linejoin="round"/>
+    <line x1="285" y1="125" x2="120" y2="290" stroke="#f1f5f9" stroke-width="28" stroke-linecap="round"/>
+    <path d="M120 290 C120 290 80 320 60 360 C40 400 30 460 30 480 C50 480 110 470 150 450 C190 430 220 390 220 390 L120 290 Z" fill="#38bdf8" stroke="#ffffff" stroke-width="12" stroke-linejoin="round"/>
+    <line x1="70" y1="460" x2="140" y2="390" stroke="#0284c7" stroke-width="8" stroke-linecap="round"/>
+    <line x1="100" y1="470" x2="170" y2="400" stroke="#0284c7" stroke-width="8" stroke-linecap="round"/>
+    <!-- Sparkles -->
+    <polygon points="390,200 405,225 435,230 410,250 415,280 390,265 365,280 370,250 345,230 375,225" fill="#fef08a"/>
+    <polygon points="180,90 190,110 215,115 195,130 200,155 180,140 160,155 165,130 145,115 170,110" fill="#fef08a" transform="scale(0.8) translate(50, 20)"/>
+  </g>
+</svg>
