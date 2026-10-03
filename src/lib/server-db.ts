@@ -32,7 +32,25 @@ export interface DatabaseSchema {
   away_periods: AwayPeriod[];
 }
 
-const DB_FILE_PATH = path.join(process.cwd(), 'data', 'database.json');
+function getDbFilePath(): string {
+  // On Vercel, the project directory is read-only.
+  // /tmp is writable across lambda execution.
+  if (process.env.VERCEL) {
+    const tmpPath = path.join('/tmp', 'database.json');
+    if (!fs.existsSync(tmpPath)) {
+      const seedPath = path.join(process.cwd(), 'data', 'database.json');
+      if (fs.existsSync(seedPath)) {
+        try {
+          fs.copyFileSync(seedPath, tmpPath);
+        } catch (e) {
+          console.warn('Could not copy seed database to /tmp:', e);
+        }
+      }
+    }
+    return tmpPath;
+  }
+  return path.join(process.cwd(), 'data', 'database.json');
+}
 
 function initializeDefaultDatabase(): DatabaseSchema {
   // Simran user and flat with code 83RZLE pre-configured so invite code 83RZLE works instantly!
@@ -75,19 +93,20 @@ function initializeDefaultDatabase(): DatabaseSchema {
 }
 
 export function getDatabase(): DatabaseSchema {
+  const filePath = getDbFilePath();
   try {
-    const dir = path.dirname(DB_FILE_PATH);
+    const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    if (!fs.existsSync(DB_FILE_PATH)) {
+    if (!fs.existsSync(filePath)) {
       const initial = initializeDefaultDatabase();
-      fs.writeFileSync(DB_FILE_PATH, JSON.stringify(initial, null, 2), 'utf-8');
+      fs.writeFileSync(filePath, JSON.stringify(initial, null, 2), 'utf-8');
       return initial;
     }
 
-    const content = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+    const content = fs.readFileSync(filePath, 'utf-8');
     const parsed = JSON.parse(content) as DatabaseSchema;
 
     // Safety check: ensure 83RZLE exists if it was queried before file creation
@@ -140,12 +159,13 @@ export function getDatabase(): DatabaseSchema {
 }
 
 export function saveDatabase(data: DatabaseSchema): void {
+  const filePath = getDbFilePath();
   try {
-    const dir = path.dirname(DB_FILE_PATH);
+    const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error saving centralized database:', err);
   }
