@@ -112,15 +112,6 @@
       "timezone": "Asia/Kolkata",
       "created_at": "2026-10-03T15:11:26.767Z",
       "member_count": 3
-    },
-    {
-      "id": "group-1791041693879",
-      "name": "makaan",
-      "invite_code": "43ZY3W",
-      "admin_user_id": "user-1791039394978",
-      "timezone": "Asia/Kolkata",
-      "created_at": "2026-10-03T15:34:53.879Z",
-      "member_count": 2
     }
   ],
   "members": [
@@ -241,38 +232,6 @@
       },
       "is_away": false,
       "away_period": null
-    },
-    {
-      "id": "gm-1791041693879",
-      "group_id": "group-1791041693879",
-      "user_id": "user-1791039394978",
-      "role": "admin",
-      "joined_at": "2026-10-03T15:34:53.879Z",
-      "profile": {
-        "id": "user-1791039394978",
-        "name": "Salman",
-        "username": "sallu",
-        "password": "28082027",
-        "email": "sallu@flat.com",
-        "created_at": "2026-10-03T14:56:34.978Z"
-      },
-      "is_away": false
-    },
-    {
-      "id": "gm-1791041738656",
-      "group_id": "group-1791041693879",
-      "user_id": "user-1791039193862",
-      "role": "member",
-      "joined_at": "2026-10-03T15:35:38.656Z",
-      "profile": {
-        "id": "user-1791039193862",
-        "name": "sinchan",
-        "username": "sinchan",
-        "password": "1234",
-        "email": "sinchan@flat.com",
-        "created_at": "2026-10-03T14:53:13.862Z"
-      },
-      "is_away": false
     },
     {
       "id": "gm-1791041858693",
@@ -571,150 +530,6 @@
             "password": "password123",
             "email": "aman_8665@gmail.com",
             "created_at": "2026-10-03T15:37:38.672Z"
-          }
-        }
-      ]
-    },
-    {
-      "id": "task-1791041801005",
-      "group_id": "group-1791041693879",
-      "name": "trashj",
-      "description": "",
-      "interval_type": "days",
-      "interval_value": 3,
-      "is_active": true,
-      "created_at": "2026-10-03T15:36:41.005Z",
-      "rotation": [
-        {
-          "id": "rot-task-1791041801005-0",
-          "task_id": "task-1791041801005",
-          "user_id": "user-1791039394978",
-          "position": 0,
-          "profile": {
-            "id": "user-1791039394978",
-            "name": "Salman",
-            "username": "sallu",
-            "password": "28082027",
-            "email": "sallu@flat.com",
-            "created_at": "2026-10-03T14:56:34.978Z"
-          }
-        },
-        {
-          "id": "rot-task-1791041801005-1",
-          "task_id": "task-1791041801005",
-          "user_id": "user-1791039193862",
-          "position": 1,
-          "profile": {
-            "id": "user-1791039193862",
-            "name": "sinchan",
-            "username": "sinchan",
-            "password": "1234",
-            "email": "sinchan@flat.com",
-            "created_at": "2026-10-03T14:53:13.862Z"
-          }
-        }
-      ],
-      "state": {
-        "task_id": "task-1791041801005",
-        "current_rotation_position": 0,
-        "current_assignee_id": "user-1791039394978",
-        "next_due_at": "2026-10-06T15:36:52.236Z",
-        "next_reminder_at": "2026-10-06T15:36:52.236Z",
-        "is_paused": false,
-        "updated_at": "2026-10-03T15:36:52.236Z",
-        "last_completed_at": "2026-10-03T15:36:52.236Z",
-        "last_completed_by_id": "user-1791039193862"
-      },
-      "current_assignee": {
-        "id": "user-1791039394978",
-        "name": "Salman",
-        "username": "sallu",
-        "password": "28082027",
-        "email": "sallu@flat.com",
-        "created_at": "2026-10-03T14:56:34.978Z"
-      },
-      "active_exchange": null,
-      "recent_completions": [
-        {
-          "id": "comp-1791041812236",
-          "task_id": "task-1791041801005",
-          "user_id": "user-1791039193862",
-          "completed_at": "2026-10-03T15:36:52.236Z",
-          "was_exchanged": false,
-          "original_assignee_id": null,
-          "profile": {
-            "id": "user-1791039193862",
-            "name": "sinchan",
-            "username": "sinchan",
-            "password": "1234",
-            "email": "sinchan@flat.com",
-            "created_at": "2026-10-03T14:53:13.862Z"
-          }
-        },
-        {
-          "id": "comp-1791041807457",
-          "task_id": "task-1791041801005",
-          "user_id": "user-1791039394978",
-          "completed_at": "2026-10-03T15:36:47.456Z",
-          "was_exchanged": false,
-          "original_assignee_id": null,
-          "profile": {
-            "id": "user-1791039394978",
-            "name": "Salman",
-            "username": "sallu",
-            "password": "28082027",
-            "email": "sallu@flat.com",
-            "created_at": "2026-10-03T14:56:34.978Z"
-          }
-        }
-      ],
-      "activities": [
-        {
-          "id": "act-1791041812236",
-          "task_id": "task-1791041801005",
-          "actor_id": "user-1791039193862",
-          "action": "completed",
-          "details": "sinchan completed turn",
-          "created_at": "2026-10-03T15:36:52.236Z",
-          "actor": {
-            "id": "user-1791039193862",
-            "name": "sinchan",
-            "username": "sinchan",
-            "password": "1234",
-            "email": "sinchan@flat.com",
-            "created_at": "2026-10-03T14:53:13.862Z"
-          }
-        },
-        {
-          "id": "act-1791041807457",
-          "task_id": "task-1791041801005",
-          "actor_id": "user-1791039394978",
-          "action": "completed",
-          "details": "Salman completed turn",
-          "created_at": "2026-10-03T15:36:47.456Z",
-          "actor": {
-            "id": "user-1791039394978",
-            "name": "Salman",
-            "username": "sallu",
-            "password": "28082027",
-            "email": "sallu@flat.com",
-            "created_at": "2026-10-03T14:56:34.978Z"
-          }
-        },
-        {
-          "id": "act-1791041801005",
-          "task_id": "task-1791041801005",
-          "actor_id": "user-1791039394978",
-          "action": "rotation_changed",
-          "details": "Salman created chore \"trashj\" with 2 flatmates",
-          "created_at": "2026-10-03T15:36:41.005Z",
-          "actor": {
-            "id": "user-1791039394978",
-            "name": "Salman",
-            "username": "sallu",
-            "password": "28082027",
-            "email": "sallu@flat.com",
-            "created_at": "2026-10-03T14:56:34.978Z"
           }
         }
       ]
