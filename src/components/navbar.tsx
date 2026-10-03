@@ -47,10 +47,14 @@ export function Navbar({ onOpenAwayModal, onOpenNotificationModal }: NavbarProps
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-sm tracking-tight text-white">HeyChores</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xs font-medium text-teal-400 truncate max-w-[120px]">
-                {activeGroup?.name || 'Flat'}
-              </span>
+              {activeGroup && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span className="text-xs font-medium text-teal-400 truncate max-w-[120px]">
+                    {activeGroup.name}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

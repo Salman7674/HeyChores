@@ -26,7 +26,6 @@ import {
   User,
   Lock,
   ArrowRight,
-  KeyRound,
 } from 'lucide-react';
 import { isPast, parseISO, isToday, format } from 'date-fns';
 
@@ -251,8 +250,64 @@ export default function MobileDashboardPage() {
     );
   }
 
-  // 2. Logged In User View
-  // Chores assigned to logged-in user
+  // 2. If logged in, but user has NO flat yet (e.g. newly registered user)
+  if (!activeGroup) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col pb-12">
+        <Navbar
+          onOpenAwayModal={() => setIsAwayOpen(true)}
+          onOpenNotificationModal={() => setIsNotificationOpen(true)}
+        />
+
+        <main className="flex-1 max-w-md w-full mx-auto px-4 py-12 flex flex-col justify-center">
+          <div className="p-7 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-4 shadow-2xl">
+            <div className="w-16 h-16 rounded-3xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center mx-auto text-3xl shadow-lg shadow-teal-500/10">
+              🏠
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-white mb-1.5">
+                Welcome, {currentUser?.name}!
+              </h2>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                You are not in any flat yet. You can create your own flat or join an existing flat using an invite code.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                onClick={() => setIsCreateGroupOpen(true)}
+                className="w-full py-3.5 px-4 rounded-2xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20 active:scale-95 transition"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>Create a New Flat</span>
+              </button>
+
+              <button
+                onClick={() => setIsJoinGroupOpen(true)}
+                className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95"
+              >
+                <Users className="w-4 h-4 text-teal-400" />
+                <span>Join Flat with Invite Code</span>
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <CreateGroupModal
+          isOpen={isCreateGroupOpen}
+          onClose={() => setIsCreateGroupOpen(false)}
+        />
+        <JoinGroupModal
+          isOpen={isJoinGroupOpen}
+          onClose={() => setIsJoinGroupOpen(false)}
+        />
+      </div>
+    );
+  }
+
+  // 3. User is in an Active Flat: Show tasks of THIS flat
+  // Chores assigned to logged-in user in this flat
   const myTasks = tasks.filter(
     (t) =>
       t.is_active &&
@@ -260,7 +315,7 @@ export default function MobileDashboardPage() {
       t.state?.current_assignee_id === currentUser?.id
   );
 
-  // All pending chores in flat
+  // All pending chores in this flat
   const allPendingTasks = tasks.filter((t) => t.is_active && !t.state?.is_paused);
 
   const handleCompleteMyTask = async (taskId: string) => {
@@ -391,80 +446,96 @@ export default function MobileDashboardPage() {
               )}
             </section>
 
-            {/* SECTION 2: ALL TASKS PENDING WITH WHOM */}
+            {/* SECTION 2: ALL TASKS PENDING IN THIS FLAT */}
             <section className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
                   <span>All Pending Chores ({allPendingTasks.length})</span>
                 </h2>
-                <span className="text-[11px] text-slate-500">Tap to see rotation</span>
+                {allPendingTasks.length > 0 && (
+                  <span className="text-[11px] text-slate-500">Tap to see rotation</span>
+                )}
               </div>
 
-              <div className="space-y-2">
-                {allPendingTasks.map((task) => {
-                  const isMine = task.state?.current_assignee_id === currentUser?.id;
-                  const overdue = isOverdue(task.state?.next_due_at);
+              {allPendingTasks.length === 0 ? (
+                <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800/80 text-center space-y-2">
+                  <p className="text-xs text-slate-400">
+                    No chores created in &quot;{activeGroup.name}&quot; yet.
+                  </p>
+                  <button
+                    onClick={() => setIsCreateTaskOpen(true)}
+                    className="py-2 px-4 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs"
+                  >
+                    + Add First Chore
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allPendingTasks.map((task) => {
+                    const isMine = task.state?.current_assignee_id === currentUser?.id;
+                    const overdue = isOverdue(task.state?.next_due_at);
 
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => setSelectedTaskForDetail(task)}
-                      className={`p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer active:scale-[0.99] ${
-                        isMine
-                          ? 'bg-slate-900 border-teal-500/40 hover:border-teal-500/60'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                            isMine
-                              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
-                        >
-                          {task.current_assignee?.name?.[0] || 'U'}
-                        </div>
-
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-white">{task.name}</span>
-                            {isMine && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-teal-400 text-slate-950">
-                                YOU
-                              </span>
-                            )}
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => setSelectedTaskForDetail(task)}
+                        className={`p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer active:scale-[0.99] ${
+                          isMine
+                            ? 'bg-slate-900 border-teal-500/40 hover:border-teal-500/60'
+                            : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                              isMine
+                                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                                : 'bg-slate-800 text-slate-300'
+                            }`}
+                          >
+                            {task.current_assignee?.name?.[0] || 'U'}
                           </div>
-                          <p className="text-xs text-slate-400">
-                            Responsible:{' '}
-                            <span className="font-medium text-slate-200">
-                              {task.current_assignee?.name}
-                            </span>
-                          </p>
+
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-sm text-white">{task.name}</span>
+                              {isMine && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-teal-400 text-slate-950">
+                                  YOU
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              Responsible:{' '}
+                              <span className="font-medium text-slate-200">
+                                {task.current_assignee?.name}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span
+                            className={`text-xs font-semibold block ${
+                              overdue
+                                ? 'text-rose-400'
+                                : isToday(parseISO(task.state?.next_due_at || ''))
+                                ? 'text-amber-400'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {getDueLabel(task.state?.next_due_at)}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            Every {task.interval_value} {task.interval_type}
+                          </span>
                         </div>
                       </div>
-
-                      <div className="text-right">
-                        <span
-                          className={`text-xs font-semibold block ${
-                            overdue
-                              ? 'text-rose-400'
-                              : isToday(parseISO(task.state?.next_due_at || ''))
-                              ? 'text-amber-400'
-                              : 'text-slate-400'
-                          }`}
-                        >
-                          {getDueLabel(task.state?.next_due_at)}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          Every {task.interval_value} {task.interval_type}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           </>
         )}
@@ -498,7 +569,7 @@ export default function MobileDashboardPage() {
                 onClick={() => setIsJoinGroupOpen(true)}
                 className="w-full py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition"
               >
-                <span>Join Flat via Code</span>
+                <span>Join Another Flat via Code</span>
               </button>
 
               <button

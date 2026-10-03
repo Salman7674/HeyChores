@@ -75,11 +75,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isSupabaseMode] = useState<boolean>(() => isSupabaseConfigured());
   const [allUsers, setAllUsers] = useState<Profile[]>(MOCK_PROFILES);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [groups, setGroups] = useState<Group[]>([MOCK_GROUP]);
-  const [activeGroup, setActiveGroup] = useState<Group | null>(MOCK_GROUP);
-  const [members, setMembers] = useState<GroupMember[]>(MOCK_MEMBERS);
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [awayPeriods, setAwayPeriods] = useState<AwayPeriod[]>(MOCK_AWAY_PERIODS);
+
+  // Global repository stores in memory / localStorage
+  const [allGroupsStore, setAllGroupsStore] = useState<Group[]>([MOCK_GROUP]);
+  const [allMembersStore, setAllMembersStore] = useState<GroupMember[]>(MOCK_MEMBERS);
+  const [allTasksStore, setAllTasksStore] = useState<Task[]>(MOCK_TASKS);
+  const [allAwayStore, setAllAwayStore] = useState<AwayPeriod[]>(MOCK_AWAY_PERIODS);
+
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,7 +106,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.error('Supabase user check error:', err);
         }
       } else {
-        // In local mode, check localStorage for registered accounts and logged-in user
+        // In local mode, load all persistent stores
         try {
           let usersList = MOCK_PROFILES;
           const savedUsers = localStorage.getItem('heychores_users');
@@ -114,35 +117,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('heychores_users', JSON.stringify(MOCK_PROFILES));
           }
 
+          const savedAllGroups = localStorage.getItem('heychores_all_groups');
+          if (savedAllGroups) setAllGroupsStore(JSON.parse(savedAllGroups));
+
+          const savedAllMembers = localStorage.getItem('heychores_all_members');
+          if (savedAllMembers) setAllMembersStore(JSON.parse(savedAllMembers));
+
+          const savedAllTasks = localStorage.getItem('heychores_all_tasks');
+          if (savedAllTasks) setAllTasksStore(JSON.parse(savedAllTasks));
+
+          const savedAllAway = localStorage.getItem('heychores_all_away');
+          if (savedAllAway) setAllAwayStore(JSON.parse(savedAllAway));
+
           const savedUserId = localStorage.getItem('heychores_current_user_id');
           if (savedUserId) {
             const found = usersList.find((p) => p.id === savedUserId);
             if (found) setCurrentUser(found);
-            else setCurrentUser(usersList[0]);
-          } else {
-            // Default logged in as Ahmed for instant initial visit
-            setCurrentUser(usersList[0]);
-            localStorage.setItem('heychores_current_user_id', usersList[0].id);
-          }
-
-          const savedTasks = localStorage.getItem('heychores_tasks');
-          if (savedTasks) setTasks(JSON.parse(savedTasks));
-
-          const savedMembers = localStorage.getItem('heychores_members');
-          if (savedMembers) setMembers(JSON.parse(savedMembers));
-
-          const savedAway = localStorage.getItem('heychores_away');
-          if (savedAway) setAwayPeriods(JSON.parse(savedAway));
-
-          const savedGroups = localStorage.getItem('heychores_groups');
-          if (savedGroups) {
-            const parsed = JSON.parse(savedGroups);
-            setGroups(parsed);
-            if (parsed.length > 0) setActiveGroup(parsed[0]);
           }
         } catch (e) {
-          console.warn('LocalStorage error:', e);
-          setCurrentUser(MOCK_PROFILES[0]);
+          console.warn('LocalStorage load error:', e);
         }
       }
       setIsLoading(false);
@@ -151,23 +144,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [isSupabaseMode]);
 
-  const persistState = (newTasks?: Task[], newMembers?: GroupMember[], newAway?: AwayPeriod[], newGroups?: Group[]) => {
+  // Derived: Only groups where currentUser is an explicit member!
+  const userMemberships = currentUser
+    ? allMembersStore.filter((m) => m.user_id === currentUser.id)
+    : [];
+  const userGroupIds = userMemberships.map((m) => m.group_id);
+  const userGroups = allGroupsStore.filter((g) => userGroupIds.includes(g.id));
+
+  // Determine active group: either activeGroupId or first of userGroups
+  const activeGroup =
+    userGroups.find((g) => g.id === activeGroupId) ||
+    (userGroups.length > 0 ? userGroups[0] : null);
+
+  // Derived: Members of active group
+  const members = activeGroup
+    ? allMembersStore.filter((m) => m.group_id === activeGroup.id)
+    : [];
+
+  // Derived: Tasks belonging ONLY to active group
+  const tasks = activeGroup
+    ? allTasksStore.filter((t) => t.group_id === activeGroup.id)
+    : [];
+
+  // Derived: Away periods of active group
+  const awayPeriods = activeGroup
+    ? allAwayStore.filter((a) => a.group_id === activeGroup.id)
+    : [];
+
+  // Helper to persist changes
+  const saveAllStores = (
+    newAllTasks?: Task[],
+    newAllMembers?: GroupMember[],
+    newAllAway?: AwayPeriod[],
+    newAllGroups?: Group[]
+  ) => {
     if (!isSupabaseMode) {
-      if (newTasks) {
-        setTasks(newTasks);
-        localStorage.setItem('heychores_tasks', JSON.stringify(newTasks));
+      if (newAllTasks) {
+        setAllTasksStore(newAllTasks);
+        localStorage.setItem('heychores_all_tasks', JSON.stringify(newAllTasks));
       }
-      if (newMembers) {
-        setMembers(newMembers);
-        localStorage.setItem('heychores_members', JSON.stringify(newMembers));
+      if (newAllMembers) {
+        setAllMembersStore(newAllMembers);
+        localStorage.setItem('heychores_all_members', JSON.stringify(newAllMembers));
       }
-      if (newAway) {
-        setAwayPeriods(newAway);
-        localStorage.setItem('heychores_away', JSON.stringify(newAway));
+      if (newAllAway) {
+        setAllAwayStore(newAllAway);
+        localStorage.setItem('heychores_all_away', JSON.stringify(newAllAway));
       }
-      if (newGroups) {
-        setGroups(newGroups);
-        localStorage.setItem('heychores_groups', JSON.stringify(newGroups));
+      if (newAllGroups) {
+        setAllGroupsStore(newAllGroups);
+        localStorage.setItem('heychores_all_groups', JSON.stringify(newAllGroups));
       }
     }
   };
@@ -235,6 +261,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Register a new account with Username & Password
+   * New user starts with ZERO flats and ZERO other people's chores!
    */
   const registerUser = async (
     name: string,
@@ -270,7 +297,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAllUsers(updatedUsers);
     localStorage.setItem('heychores_users', JSON.stringify(updatedUsers));
 
+    // Authenticate the new user
     setCurrentUser(newUser);
+    setActiveGroupId(null);
     localStorage.setItem('heychores_current_user_id', newUser.id);
 
     return { success: true };
@@ -284,12 +313,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('heychores_current_user_id');
     }
     setCurrentUser(null);
+    setActiveGroupId(null);
+  };
+
+  const setActiveGroup = (group: Group) => {
+    setActiveGroupId(group.id);
   };
 
   /**
    * Completes a task turn atomically.
-   * STRICT AUTHORIZATION:
-   * Only the current responsible person (or flat Admin with audit logging) can complete it!
    */
   const markTaskCompleted = async (
     taskId: string,
@@ -299,7 +331,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to complete a chore.' };
     }
 
-    const targetTask = tasks.find((t) => t.id === taskId);
+    const targetTask = allTasksStore.find((t) => t.id === taskId);
     if (!targetTask || !targetTask.state || !targetTask.rotation || targetTask.rotation.length === 0) {
       return { success: false, message: 'Task not found.' };
     }
@@ -393,18 +425,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity, ...(targetTask.activities || [])],
     };
 
-    const newTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
+    saveAllStores(newAllTasks);
 
     return { success: true };
   };
 
   /**
    * Temporarily exchanges turn with another roommate.
-   * STRICT RULES:
-   * 1. Cannot exchange with a person who is marked away!
-   * 2. Only the assigned roommate (or admin) can initiate an exchange.
-   * 3. An activity log is recorded in history.
    */
   const exchangeTurn = async (
     taskId: string,
@@ -415,7 +443,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to exchange turns.' };
     }
 
-    const targetTask = tasks.find((t) => t.id === taskId);
+    const targetTask = allTasksStore.find((t) => t.id === taskId);
     if (!targetTask || !targetTask.state) {
       return { success: false, message: 'Task not found.' };
     }
@@ -479,8 +507,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity, ...(targetTask.activities || [])],
     };
 
-    const newTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
+    saveAllStores(newAllTasks);
 
     return { success: true };
   };
@@ -489,24 +517,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Sets away period for a roommate.
    */
   const setMemberAway = async (userId: string, startAt: string, endAt: string): Promise<boolean> => {
+    if (!activeGroup) return false;
+
     const newPeriod: AwayPeriod = {
       id: `away-${Date.now()}`,
-      group_id: activeGroup?.id || '',
+      group_id: activeGroup.id,
       user_id: userId,
       start_at: startAt,
       end_at: endAt,
       created_at: new Date().toISOString(),
     };
 
-    const newAwayList = [...awayPeriods, newPeriod];
-    const newMembers = members.map((m) => {
-      if (m.user_id === userId) {
+    const newAllAway = [...allAwayStore, newPeriod];
+    const newAllMembers = allMembersStore.map((m) => {
+      if (m.group_id === activeGroup.id && m.user_id === userId) {
         return { ...m, is_away: true, away_period: newPeriod };
       }
       return m;
     });
 
-    persistState(undefined, newMembers, newAwayList);
+    saveAllStores(undefined, newAllMembers, newAllAway);
     return true;
   };
 
@@ -514,16 +544,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Clears an away period.
    */
   const clearMemberAway = async (awayId: string): Promise<boolean> => {
-    const target = awayPeriods.find((a) => a.id === awayId);
-    const newAwayList = awayPeriods.filter((a) => a.id !== awayId);
-    const newMembers = members.map((m) => {
-      if (target && m.user_id === target.user_id) {
+    const target = allAwayStore.find((a) => a.id === awayId);
+    const newAllAway = allAwayStore.filter((a) => a.id !== awayId);
+    const newAllMembers = allMembersStore.map((m) => {
+      if (target && m.group_id === target.group_id && m.user_id === target.user_id) {
         return { ...m, is_away: false, away_period: null };
       }
       return m;
     });
 
-    persistState(undefined, newMembers, newAwayList);
+    saveAllStores(undefined, newAllMembers, newAllAway);
     return true;
   };
 
@@ -539,7 +569,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     rotationUserIds: string[];
   }): Promise<{ success: boolean; message?: string }> => {
     if (!activeGroup || !currentUser) {
-      return { success: false, message: 'You must be logged in and part of a flat to create chores.' };
+      return { success: false, message: 'You must be part of a flat to create chores.' };
     }
 
     if (!data.name.trim()) {
@@ -600,8 +630,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity],
     };
 
-    const newTasks = [newTask, ...tasks];
-    persistState(newTasks);
+    const newAllTasks = [newTask, ...allTasksStore];
+    saveAllStores(newAllTasks);
     return { success: true };
   };
 
@@ -609,8 +639,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Updates task.
    */
   const updateTask = async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
-    const newTasks = tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? { ...t, ...updates } : t));
+    saveAllStores(newAllTasks);
     return true;
   };
 
@@ -618,7 +648,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Toggles pause/resume on a task.
    */
   const togglePauseTask = async (taskId: string): Promise<boolean> => {
-    const target = tasks.find((t) => t.id === taskId);
+    const target = allTasksStore.find((t) => t.id === taskId);
     if (!target || !target.state || !currentUser) return false;
 
     const isNowPaused = !target.state.is_paused;
@@ -643,8 +673,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity, ...(target.activities || [])],
     };
 
-    const newTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
+    saveAllStores(newAllTasks);
     return true;
   };
 
@@ -652,17 +682,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Deletes task.
    */
   const deleteTask = async (taskId: string): Promise<boolean> => {
-    const newTasks = tasks.filter((t) => t.id !== taskId);
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.filter((t) => t.id !== taskId);
+    saveAllStores(newAllTasks);
     return true;
   };
 
   /**
    * Reorders task rotation members.
-   * Records history of rotation alteration!
    */
   const reorderTaskRotation = async (taskId: string, userIdsInOrder: string[]): Promise<boolean> => {
-    const target = tasks.find((t) => t.id === taskId);
+    const target = allTasksStore.find((t) => t.id === taskId);
     if (!target || !target.rotation || !currentUser) return false;
 
     const newRotation = userIdsInOrder.map((userId, idx) => {
@@ -701,8 +730,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activities: [newActivity, ...(target.activities || [])],
     };
 
-    const newTasks = tasks.map((t) => (t.id === taskId ? updatedTask : t));
-    persistState(newTasks);
+    const newAllTasks = allTasksStore.map((t) => (t.id === taskId ? updatedTask : t));
+    saveAllStores(newAllTasks);
     return true;
   };
 
@@ -710,10 +739,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Removes a member from group and updates task rotations.
    */
   const removeMemberFromGroup = async (userId: string): Promise<boolean> => {
-    const newMembers = members.filter((m) => m.user_id !== userId);
+    if (!activeGroup) return false;
 
-    const newTasks = tasks.map((task) => {
-      if (!task.rotation || !task.state) return task;
+    const newAllMembers = allMembersStore.filter(
+      (m) => !(m.group_id === activeGroup.id && m.user_id === userId)
+    );
+
+    const newAllTasks = allTasksStore.map((task) => {
+      if (task.group_id !== activeGroup.id || !task.rotation || !task.state) return task;
       const hasMember = task.rotation.some((r) => r.user_id === userId);
       if (!hasMember) return task;
 
@@ -736,7 +769,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     });
 
-    persistState(newTasks, newMembers);
+    saveAllStores(newAllTasks, newAllMembers);
     return true;
   };
 
@@ -751,14 +784,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       admin_user_id: newAdminUserId,
     };
 
-    const updatedMembers = members.map((m) => ({
-      ...m,
-      role: (m.user_id === newAdminUserId ? 'admin' : m.user_id === activeGroup.admin_user_id ? 'member' : m.role) as any,
-    }));
+    const newAllGroups = allGroupsStore.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
+    const newAllMembers = allMembersStore.map((m) => {
+      if (m.group_id === activeGroup.id) {
+        return {
+          ...m,
+          role: (m.user_id === newAdminUserId ? 'admin' : m.user_id === activeGroup.admin_user_id ? 'member' : m.role) as any,
+        };
+      }
+      return m;
+    });
 
-    const updatedGroups = groups.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
-    setActiveGroup(updatedGroup);
-    persistState(undefined, updatedMembers, undefined, updatedGroups);
+    saveAllStores(undefined, newAllMembers, undefined, newAllGroups);
     return true;
   };
 
@@ -766,7 +803,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
    * Admin: Renames a member.
    */
   const renameMember = async (userId: string, newName: string): Promise<boolean> => {
-    const updatedMembers = members.map((m) => {
+    const updatedAllMembers = allMembersStore.map((m) => {
       if (m.user_id === userId) {
         return {
           ...m,
@@ -780,11 +817,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return m;
     });
 
+    const updatedAllUsers = allUsers.map((u) => (u.id === userId ? { ...u, name: newName } : u));
+    setAllUsers(updatedAllUsers);
+    localStorage.setItem('heychores_users', JSON.stringify(updatedAllUsers));
+
     if (currentUser?.id === userId) {
       setCurrentUser((prev) => (prev ? { ...prev, name: newName } : null));
     }
 
-    persistState(undefined, updatedMembers);
+    saveAllStores(undefined, updatedAllMembers);
     return true;
   };
 
@@ -804,14 +845,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       invite_code: code,
     };
 
-    const updatedGroups = groups.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
-    setActiveGroup(updatedGroup);
-    persistState(undefined, undefined, undefined, updatedGroups);
+    const newAllGroups = allGroupsStore.map((g) => (g.id === activeGroup.id ? updatedGroup : g));
+    saveAllStores(undefined, undefined, undefined, newAllGroups);
     return code;
   };
 
   /**
    * Creates a new group.
+   * Creator becomes admin and member.
+   * Flat starts clean with ZERO chores!
    */
   const createGroup = async (name: string, timezone: string = 'Asia/Kolkata'): Promise<Group> => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -823,7 +865,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminId = currentUser?.id || 'admin-1';
     const newGroup: Group = {
       id: `group-${Date.now()}`,
-      name,
+      name: name.trim(),
       invite_code: code,
       admin_user_id: adminId,
       timezone,
@@ -841,20 +883,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       is_away: false,
     };
 
-    const updatedGroups = [...groups, newGroup];
-    setGroups(updatedGroups);
-    setActiveGroup(newGroup);
-    setMembers([newMember]);
-    setTasks([]);
-    setAwayPeriods([]);
+    const newAllGroups = [...allGroupsStore, newGroup];
+    const newAllMembers = [...allMembersStore, newMember];
 
-    persistState([], [newMember], [], updatedGroups);
+    setActiveGroupId(newGroup.id);
+    saveAllStores(undefined, newAllMembers, undefined, newAllGroups);
+
     return newGroup;
   };
 
   /**
    * JOINS A FLAT:
-   * Fixed and fully dynamic! Finds flat by code, adds user as member, updates flatmates list and active group.
+   * Adds user to flat membership and sets active group.
    */
   const joinGroupByCode = async (
     code: string
@@ -868,8 +908,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Please enter a valid invite code.' };
     }
 
-    // Look for group in current groups or default mock group
-    let foundGroup = groups.find((g) => g.invite_code.toUpperCase() === cleanCode);
+    // Look for group in all groups store
+    let foundGroup = allGroupsStore.find((g) => g.invite_code.toUpperCase() === cleanCode);
     if (!foundGroup && cleanCode === MOCK_GROUP.invite_code) {
       foundGroup = MOCK_GROUP;
     }
@@ -882,12 +922,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Check if user is already a member
-    const isAlreadyMember = members.some(
+    const isAlreadyMember = allMembersStore.some(
       (m) => m.group_id === foundGroup!.id && m.user_id === currentUser.id
     );
 
     if (isAlreadyMember) {
-      setActiveGroup(foundGroup);
+      setActiveGroupId(foundGroup.id);
       return { success: true, message: `You are already a member of "${foundGroup.name}".` };
     }
 
@@ -902,21 +942,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       is_away: false,
     };
 
-    const updatedMembers = [...members, newMember];
+    const updatedAllMembers = [...allMembersStore, newMember];
     const updatedGroup: Group = {
       ...foundGroup,
-      member_count: (foundGroup.member_count || members.length) + 1,
+      member_count: (foundGroup.member_count || 1) + 1,
     };
 
-    const updatedGroups = groups.some((g) => g.id === foundGroup!.id)
-      ? groups.map((g) => (g.id === foundGroup!.id ? updatedGroup : g))
-      : [...groups, updatedGroup];
+    const updatedAllGroups = allGroupsStore.some((g) => g.id === foundGroup!.id)
+      ? allGroupsStore.map((g) => (g.id === foundGroup!.id ? updatedGroup : g))
+      : [...allGroupsStore, updatedGroup];
 
-    setMembers(updatedMembers);
-    setGroups(updatedGroups);
-    setActiveGroup(updatedGroup);
-
-    persistState(undefined, updatedMembers, undefined, updatedGroups);
+    setActiveGroupId(foundGroup.id);
+    saveAllStores(undefined, updatedAllMembers, undefined, updatedAllGroups);
 
     return { success: true, message: `Joined "${foundGroup.name}" successfully!` };
   };
@@ -935,7 +972,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         isAuthenticated: Boolean(currentUser),
         allUsers,
-        groups,
+        groups: userGroups,
         activeGroup,
         members,
         tasks,
